@@ -1,23 +1,21 @@
 #include "cyber.h"
 
-const float degPerSecMCoef = 15;
-
 Cyber::Cyber(QObject *parent) :
     QObject(parent)
 {
-    _1 = new wheel (1);
-    _2 = new wheel (2);
-    _3 = new wheel (3);
-}
+    vector a;   //  Guiding vector for all
+    a.x = 0;
+    a.y = 1;
+    _1 = new wheel (1, normalize(a)); //  Initialize first wheel
 
-inline vector operator*(matrix *a, vector *b) const
-{
-    QSharedPointer<vector> toRet;
-    //Some multiplying code that multiply.
+    a.x = qCos(2 * Pi / 3);
+    a.y = -qSin(2 * Pi / 3);
+    _2 = new wheel (2, normalize(a));   //  Second
+
+    a.x = qCos(4 * Pi / 3);
+    a.y = -qSin(4 * Pi / 3);
+    _3 = new wheel (3, normalize(a));   //  Third
 }
-// Deal with this code muffaka
-inline vector operator+(vector *a, vector *b) const;
-inline int operator*(vector *a, vector *b) const;
 
 void Cyber::turn (float degree)
 {
@@ -32,6 +30,13 @@ void Cyber::stop()
     _1.stop();
     _2.stop();
     _3.stop();
+}
+
+void Cyber::moveByVector(float speed, vector guide)
+{
+    _1.spin(guide * _1.getGuide() * speed);
+    _1.spin(guide * _2.getGuide() * speed);
+    _1.spin(guide * _3.getGuide() * speed);
 }
 
 void Cyber::turnLeft(float degree)

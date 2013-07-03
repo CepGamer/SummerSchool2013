@@ -4,4 +4,5 @@ HEADERS += \
 
 SOURCES += \
     cyber.cpp \
-    wheel.cpp
+    wheel.cpp \
+    main.cpp

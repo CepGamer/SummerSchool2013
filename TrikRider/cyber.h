@@ -3,24 +3,10 @@
 
 #include <QObject>
 #include <QSharedPointer>
+
 #include "wheel.h"
 
-struct vector
-{
-    int x, y;
-};
-
-struct matrix
-{
-    int _11;
-    int _12;
-    int _21;
-    int _22;
-};
-
-inline vector operator*(matrix *a, vector *b) const;
-inline vector operator+(vector *a, vector *b) const;
-inline int operator*(vector *a, vector *b) const;
+const float degPerSecMCoef = 15;
 
 class Cyber : public QObject
 {
@@ -30,7 +16,7 @@ public:
     inline void turn (float degree);    //  NOTE:
     //  We allow turning for more than 360 degree (that's may be bad because of float precision)
     void stop();
-    void moveByVector (float speed);
+    void moveByVector (float speed, vector guide);
 
 private:
     wheel _1;
