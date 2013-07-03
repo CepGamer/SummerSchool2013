@@ -1,20 +1,48 @@
 #include "wheel.h"
 
-wheel::wheel(vector guiding, QObject *parent) :
+wheel::wheel(int wheelNumber, vector guiding, QObject *parent) :
     QObject(parent)
 {
-    guide = new vector;
+    QString s = QString ("/sys/class/pwm/ecap." + QString::number(wheelNumber));    //  Get full path to engines
+    guide = new vector; //  Get new vector
     setGuide(guiding);
+    request = new QFile (s + QString("request"));
+    if(!request->open(QFile::WriteOnly))
+    {
+        qDebug << "Cannot open request #" << wheelNumber << "\n";
+    }
+    request->write("1");
+    period_freq = new QFile (s + QString("period_freq"));
+    duty_ns = new QFile (s + QString("duty_ns"));
+    run = new QFile (s + QString("run"));
+    if(!(period_freq->open(QFile::WriteOnly) && duty_ns->open(QFile::WriteOnly) && run->open(QFile::WriteOnly)))
+    {
+        qDebug() << "Cannot open either run or duty or period #" << wheelNumber;
+    }
+    //  Do I need to set freq right now?
 }
 
 wheel::~wheel()
 {
-    temp->~QList();
+    run->write("0");
+    //  Do we need to clean other files?
+    run->close();
+    period_freq->close();
+    duty_ns->close();
+    request->write("0");
+    request->close();
+    //  Delete after closing
+    delete run;
+    delete duty_ns;
+    delete period_freq;
+    delete request;
+
     delete guide;
 }
 
 void wheel::stop()
 {
+    run->write("0");
 }
 
 vector operator*(matrix a, vector b)
@@ -48,8 +76,14 @@ vector normalize (vector a)
     return b;
 }
 
+void wheel::spinForw(float speed)
+{
+    duty_ns->write(QString::number());
+}
+
 void wheel::spinForw(float speed, float msecs)
 {
+
 }
 
 void wheel::spinBackw(float speed, float msecs)
@@ -70,10 +104,6 @@ void wheel::setGuide(vector x)
 vector *wheel::getGuide()
 {
     return guide;
-}
-
-void wheel::spinForw(float speed)
-{
 }
 
 void wheel::spin(float speed)

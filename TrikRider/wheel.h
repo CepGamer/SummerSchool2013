@@ -5,7 +5,8 @@
 #include <QFile>
 #include <qmath.h>
 
-const float Pi = 3.1415926535;
+const float Pi = 3.1415926535;  //  Needed for some calc's
+const float nsInMs = 1000;      //  Not 1024!
 
 struct vector
 {
@@ -29,7 +30,7 @@ class wheel : public QObject
 {
     Q_OBJECT
 public:
-    explicit wheel(vector guiding, QObject *parent = 0);
+    explicit wheel(int wheelNumber, vector guiding, QObject *parent = 0);
     ~wheel ();      //  Destroys the wheel
     void stop();    //  Stops
     void spin(float speed);     //  Spin continiously
@@ -38,8 +39,11 @@ public:
     vector *getGuide();         //  returns guiding vector
 
 private:
-    QList <QFile> * temp; //  Serie of files that controls the drives
-    QList <QString> * tempName; //  Full pathes to files
+    //  Serie of files that controls the drives
+    QFile * request;        //  1 - open others for write, 0 - close interface
+    QFile * period_freq;    //  Signal frequency
+    QFile * duty_ns;        //  Width of 1-signal in ns
+    QFile * run;            //  Run signal
     vector * guide;             //  Guiding vector
     void spinForw(float speed); //  Precise spin
     void spinBackw(float speed);
