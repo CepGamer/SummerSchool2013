@@ -17,6 +17,16 @@ Cyber::Cyber(QObject *parent) :
     _3 = new wheel (2, normalize(a));   //  Third
 }
 
+Cyber::~Cyber()
+{
+    _1->~wheel();
+    _2->~wheel();
+    _3->~wheel();
+    delete _1;
+    delete _2;
+    delete _3;
+}
+
 void Cyber::turn (float degree)
 {
     if (degree > 0)
@@ -45,11 +55,11 @@ void Cyber::moveByVector(float speed, vector guide)
 
 void Cyber::turnLeft(float degree)
 {
-    printf ("Start engine #1\n");
+    printf ("\nStart engine #1\n");
     _1->spin(50, degree / degPerSecMCoef);   //  spinning dem wheels
-    printf ("Start engine #2\n");
+    printf ("\nStart engine #2\n");
     _2->spin(50, degree / degPerSecMCoef);
-    printf ("Start engine #3\n");
+    printf ("\nStart engine #3\n");
     _3->spin(50, degree / degPerSecMCoef);
     //  Again, some code after gyro
 }

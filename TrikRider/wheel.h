@@ -51,16 +51,15 @@ private:
     QFile * run;            //  Run signal
     vector * guide;         //  Guiding vector
     QTimer * stopTimer;     //  Stopping timer
+    int wheelNum;
     void spinForw(float speed);     //  Precise spin
     void spinBackw(float speed);
     void spinForw(float speed, float msecs);
     void spinBackw(float speed, float msecs);
 
 signals:
-    
+
 public slots:
-    
-private slots:
     void stopSlot();
 };
 

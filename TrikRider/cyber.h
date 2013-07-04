@@ -13,6 +13,7 @@ class Cyber : public QObject
     Q_OBJECT
 public:
     explicit Cyber(QObject *parent = 0);
+    ~Cyber();
     void turn (float degree);    //  NOTE:
     //  We allow turning for more than 360 degree (that's may be bad because of float precision)
     void stop();
