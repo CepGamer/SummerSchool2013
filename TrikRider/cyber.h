@@ -6,7 +6,7 @@
 
 #include "wheel.h"
 
-const float degPerSecMCoef = 15;
+const float degPerSecMCoef = 1;
 
 class Cyber : public QObject
 {

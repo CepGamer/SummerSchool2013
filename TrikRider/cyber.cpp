@@ -6,21 +6,24 @@ Cyber::Cyber(QObject *parent) :
     vector a;   //  Guiding vector for all
     a.x = 0;
     a.y = 1;
-    _1 = new wheel (normalize(a)); //  Initialize first wheel
+    _1 = new wheel (0, normalize(a)); //  Initialize first wheel
 
     a.x = qCos(2 * Pi / 3);
     a.y = -qSin(2 * Pi / 3);
-    _2 = new wheel (normalize(a));   //  Second
+    _2 = new wheel (1, normalize(a));   //  Second
 
     a.x = qCos(4 * Pi / 3);
     a.y = -qSin(4 * Pi / 3);
-    _3 = new wheel (normalize(a));   //  Third
+    _3 = new wheel (2, normalize(a));   //  Third
 }
 
 void Cyber::turn (float degree)
 {
     if (degree > 0)
+    {
+        printf("Degree is big, running\n");
         turnLeft(degree);   //  If we turn
+    }
     else if (degree < 0)
         turnRight(-degree);
 }
@@ -42,9 +45,12 @@ void Cyber::moveByVector(float speed, vector guide)
 
 void Cyber::turnLeft(float degree)
 {
-    _1->spin(3, degree / degPerSecMCoef);   //  spinning dem wheels
-    _2->spin(3, degree / degPerSecMCoef);
-    _3->spin(3, degree / degPerSecMCoef);
+    printf ("Start engine #1\n");
+    _1->spin(50, degree / degPerSecMCoef);   //  spinning dem wheels
+    printf ("Start engine #2\n");
+    _2->spin(50, degree / degPerSecMCoef);
+    printf ("Start engine #3\n");
+    _3->spin(50, degree / degPerSecMCoef);
     //  Again, some code after gyro
 }
 

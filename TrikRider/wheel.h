@@ -3,10 +3,15 @@
 
 #include <QObject>
 #include <QFile>
+#include <QDebug>
+#include <QTimer>
+
+#include <stdio.h>
 #include <qmath.h>
 
 const float Pi = 3.1415926535;  //  Needed for some calc's
-const float nsInMs = 1000;      //  Not 1024!
+const float nsInMs = 1000000.0;
+const float msecsInPerc = 0.2;
 
 struct vector
 {
@@ -41,11 +46,12 @@ public:
 private:
     //  Serie of files that controls the drives
     QFile * request;        //  1 - open others for write, 0 - close interface
-    QFile * period_freq;    //  Signal frequency
+    QFile * period_ns;    //  Signal frequency
     QFile * duty_ns;        //  Width of 1-signal in ns
     QFile * run;            //  Run signal
-    vector * guide;             //  Guiding vector
-    void spinForw(float speed); //  Precise spin
+    vector * guide;         //  Guiding vector
+    QTimer * stopTimer;     //  Stopping timer
+    void spinForw(float speed);     //  Precise spin
     void spinBackw(float speed);
     void spinForw(float speed, float msecs);
     void spinBackw(float speed, float msecs);
@@ -54,6 +60,8 @@ signals:
     
 public slots:
     
+private slots:
+    void stopSlot();
 };
 
 #endif // WHEEL_H
