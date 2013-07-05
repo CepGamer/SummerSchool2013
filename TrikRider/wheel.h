@@ -7,55 +7,44 @@
 #include <QTimer>
 
 #include <stdio.h>
-#include <qmath.h>
 
 const float Pi = 3.1415926535;  //  Needed for some calc's
 const float nsInMs = 1000000.0;
 const float msecsInPerc = 0.2;
+const int zeroPoint = 8000000;
+const int amplitude = 4000000;
 
 struct vector
 {
     float x, y;
 };
 
-struct matrix
-{
-    float _11;
-    float _12;
-    float _21;
-    float _22;
-};
-
-vector operator*(matrix a, vector b);
-vector operator+(vector a, vector b);
-float operator*(vector a, vector b);
-vector normalize (vector a);
-
 class wheel : public QObject
 {
     Q_OBJECT
 public:
-    explicit wheel(int wheelNumber, vector guiding, QObject *parent = 0);
+    explicit wheel(int wheelNumber, vector guideV, QObject *parent = 0);
     ~wheel ();      //  Destroys the wheel
     void stop();    //  Stops
     void spin(float speed);     //  Spin continiously
     void spin(float speed, float msecs);    //  Spin during some time
-    void setGuide(vector x);    //  Sets guiding vector
-    vector *getGuide();         //  returns guiding vector
+    void setGuide(vector guideV);
+    vector getGuide();
 
 private:
     //  Serie of files that controls the drives
     QFile * request;        //  1 - open others for write, 0 - close interface
-    QFile * period_ns;    //  Signal frequency
+    QFile * period_ns;      //  Signal frequency
     QFile * duty_ns;        //  Width of 1-signal in ns
     QFile * run;            //  Run signal
-    vector * guide;         //  Guiding vector
     QTimer * stopTimer;     //  Stopping timer
-    int wheelNum;
+    vector * guide;         //  Guiding vector
+    int wheelNum;           //  Wheel number
     void spinForw(float speed);     //  Precise spin
     void spinBackw(float speed);
     void spinForw(float speed, float msecs);
     void spinBackw(float speed, float msecs);
+    int setDutyNs(float speed);
 
 signals:
 
