@@ -5,6 +5,7 @@
 #include <QSharedPointer>
 
 #include "wheel.h"
+#include "gyro.h"
 
 #include <cmath>
 

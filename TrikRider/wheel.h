@@ -5,6 +5,7 @@
 #include <QFile>
 #include <QDebug>
 #include <QTimer>
+#include <QString>
 
 #include <stdio.h>
 

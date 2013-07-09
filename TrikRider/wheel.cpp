@@ -50,9 +50,11 @@ wheel::~wheel()
 void wheel::stop()
 {
     printf("Stop engine\n");
-    run->open(QFile::WriteOnly);
     run->write("0");
-    run->close();
+    if( !run->flush())
+    {
+        printf("I can't stop! Run isn't flushing.");
+    }
     request->write("0");
 }
 
@@ -62,7 +64,7 @@ void wheel::spinForw(float speed)
     {
         printf("Wrong speed\n");
     }
-    duty_ns->write(QString::number(setDutyNs (speed)).toAscii().constData());
+    duty_ns->write(QString::number(setDutyNs (speed)).toStdString().data());
     run->write("1");
 }
 
@@ -78,7 +80,7 @@ void wheel::spinForw(float speed, float msecs)
     printf ("Writing to duty_ns %d\n", setDutyNs (speed));
 //    printf("duty_ns must be:\n%d\nBut now it:\n%d\n", (int) (setDutyNs (speed)), 1700000);
 
-    if(duty_ns->write(QString::number((setDutyNs (speed))).toAscii().constData()) == -1)
+    if(duty_ns->write(QString::number((setDutyNs (speed))).toStdString().data()) == -1)
     {
         printf ("Nothing written to duty_ns\n");
     }
@@ -87,7 +89,7 @@ void wheel::spinForw(float speed, float msecs)
     {
         printf("Nothing is written to run\n");
     }
-    run->close();
+    run->flush();
 //    printf("%s\n%s\n%s\n", period_freq->readAll().constData(), duty_ns->readAll().constData(), run->readAll().constData());
     QTimer::singleShot((int) msecs * 1000, this, SLOT(stopSlot()));
 //    stopTimer->singleShot((int) msecs, this, SLOT(stopSlot()));
@@ -96,7 +98,7 @@ void wheel::spinForw(float speed, float msecs)
 void wheel::spinBackw(float speed, float msecs)
 {
 
-    duty_ns->write(QString::number(setDutyNs (speed)).toAscii().constData());  //  Setting speed
+    duty_ns->write(QString::number(setDutyNs (speed)).toStdString().data());  //  Setting speed
     run->write("1");    //  Starting engine
     stopTimer->singleShot((int) msecs, this, SLOT(stopSlot()));
     //  Here'll be better func than spinForw and I'll rewrite it into upper one
@@ -115,7 +117,7 @@ void wheel::stopSlot()
 
 void wheel::spinBackw(float speed)
 {
-    duty_ns->write(QString::number(setDutyNs (speed)).toAscii().constData());
+    duty_ns->write(QString::number(setDutyNs (speed)).toStdString().data());
     run->write("1");
 }
 
