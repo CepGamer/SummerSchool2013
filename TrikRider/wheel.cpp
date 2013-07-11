@@ -1,11 +1,9 @@
 #include "wheel.h"
 
-wheel::wheel(int wheelNumber, vector guideV, QObject *parent) :
+wheel::wheel(int wheelNumber, QObject *parent) :
     QObject(parent)
 {
     wheelNum = wheelNumber;
-    guide = new vector;
-    setGuide(guideV);
     QString s = QString ("/sys/class/pwm/ecap." + QString::number(wheelNum) + "/");    //  Get full path to engines
     request = new QFile (s + QString("request"));
     stopTimer = new QTimer (this);
@@ -135,18 +133,4 @@ void wheel::spin(float speed, float msecs)
         spinForw(speed, msecs);
     else if (speed < 0)
         spinBackw(-speed, msecs);
-}
-
-void wheel::setGuide(vector guideV)
-{
-    guide->x = guideV.x;
-    guide->y = guideV.y;
-}
-
-vector wheel::getGuide()
-{
-    vector toRet;
-    toRet.x = guide->x;
-    toRet.y = guide->y;
-    return toRet;
 }

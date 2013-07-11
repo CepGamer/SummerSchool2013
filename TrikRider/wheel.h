@@ -15,22 +15,15 @@ const float msecsInPerc = 0.2;
 const int zeroPoint = 8000000;
 const int amplitude = 4000000;
 
-struct vector
-{
-    float x, y;
-};
-
 class wheel : public QObject
 {
     Q_OBJECT
 public:
-    explicit wheel(int wheelNumber, vector guideV, QObject *parent = 0);
+    explicit wheel(int wheelNumber, QObject *parent = 0);
     ~wheel ();      //  Destroys the wheel
     void stop();    //  Stops
     void spin(float speed);     //  Spin continiously
     void spin(float speed, float msecs);    //  Spin during some time
-    void setGuide(vector guideV);
-    vector getGuide();
 
 private:
     //  Serie of files that controls the drives
@@ -39,7 +32,6 @@ private:
     QFile * duty_ns;        //  Width of 1-signal in ns
     QFile * run;            //  Run signal
     QTimer * stopTimer;     //  Stopping timer
-    vector * guide;         //  Guiding vector
     int wheelNum;           //  Wheel number
     void spinForw(float speed);     //  Precise spin
     void spinBackw(float speed);

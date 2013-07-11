@@ -3,21 +3,26 @@
 Cyber::Cyber(QObject *parent) :
     QObject(parent)
 {
+    wheels = new QList<wheel *>;
+    guide = new QList<vector *>;
     vector a;   //  Guiding vector for all
     a.x = 0;
     a.y = 1;
-    _1 = new wheel (0, normalize(a)); //  Initialize first wheel
+    guide->append( &a );
+    wheels->append(new wheel (0));    //  First wheel
 
     a.x = cos(2 * Pi / 3);
     a.y = -sin(2 * Pi / 3);
-    _2 = new wheel (1, normalize(a));   //  Second
+    guide->append( &a );
+    wheels->append( new wheel (1));    //  Second
 
     a.x = cos(4 * Pi / 3);
     a.y = -sin(4 * Pi / 3);
-    _3 = new wheel (2, normalize(a));   //  Third
+    guide->append( &a );
+    wheels->append( new wheel (2));    //  Third
 }
 
-vector operator*(matrix a, vector b)
+vector operator *(matrix a, vector b)
 {
     vector toRet;   //  Plain math, multiplying matrix 2x2 & vector
     toRet.x = a._11 * b.x + a._12 * b.y;
@@ -25,7 +30,7 @@ vector operator*(matrix a, vector b)
     return toRet;
 }
 
-vector operator+(vector a, vector b)
+vector operator +(vector a, vector b)
 {
     vector toRet;   //  Summing vectors
     toRet.x = a.x + b.x;
@@ -33,6 +38,12 @@ vector operator+(vector a, vector b)
     return toRet;
 }
 
+/*vector operator =(vector a, vector b)
+{
+    a.x = b.x;
+    a.y = b.y;
+}
+*/
 float operator*(vector a, vector b)
 {
     return a.x * b.x + a.y * b.y;   //  Scalar multiplying
@@ -60,12 +71,10 @@ matrix setAngle(float radAngle)
 
 Cyber::~Cyber()
 {
-    _1->~wheel();
-    _2->~wheel();
-    _3->~wheel();
-    delete _1;
-    delete _2;
-    delete _3;
+    wheels->at(0)->~wheel();
+    wheels->at(1)->~wheel();
+    wheels->at(2)->~wheel();
+    delete wheels;
 }
 
 void Cyber::turn (float degree)
@@ -81,34 +90,34 @@ void Cyber::turn (float degree)
 
 void Cyber::stop()
 {
-    _1->stop(); //  Fullstop
-    _2->stop();
-    _3->stop();
+    wheels->at(0)->stop(); //  Fullstop
+    wheels->at(1)->stop();
+    wheels->at(2)->stop();
 }
 
-void Cyber::moveByVector(float speed, vector guide)
+void Cyber::moveByVector(float speed, vector toMove)
 {
-    _1->spin((guide * _1->getGuide()) * speed);    //  Get those wheels spinning
-    _2->spin((guide * _2->getGuide()) * speed);
-    _3->spin((guide * _3->getGuide()) * speed);
+    wheels->at(0)->spin((toMove * *guide->at(0)) * speed);    //  Get those wheels spinning
+    wheels->at(1)->spin((toMove * *guide->at(1)) * speed);
+    wheels->at(2)->spin((toMove * *guide->at(2)) * speed);
     //  Will add code when the gyro ready
 }
 
 void Cyber::turnLeft(float degree)
 {
     printf ("\nStart engine #1\n");
-    _1->spin(50, degree / degPerSecMCoef);   //  spinning dem wheels
+    wheels->at(0)->spin(50, degree / degPerSecMCoef);   //  spinning dem wheels
     printf ("\nStart engine #2\n");
-    _2->spin(50, degree / degPerSecMCoef);
+    wheels->at(1)->spin(50, degree / degPerSecMCoef);
     printf ("\nStart engine #3\n");
-    _3->spin(50, degree / degPerSecMCoef);
+    wheels->at(2)->spin(50, degree / degPerSecMCoef);
     //  Again, some code after gyro
 
 }
 
 void Cyber::turnRight(float degree)
 {
-    _1->spin(3, degree / degPerSecMCoef);
-    _2->spin(3, degree / degPerSecMCoef);
-    _3->spin(3, degree / degPerSecMCoef);
+    wheels->at(0)->spin(3, degree / degPerSecMCoef);
+    wheels->at(1)->spin(3, degree / degPerSecMCoef);
+    wheels->at(2)->spin(3, degree / degPerSecMCoef);
 }

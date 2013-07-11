@@ -3,6 +3,7 @@
 
 #include <QObject>
 #include <QSharedPointer>
+#include <QList>
 
 #include "wheel.h"
 #include "gyro.h"
@@ -10,6 +11,11 @@
 #include <cmath>
 
 const float degPerSecMCoef = 1;
+
+struct vector
+{
+    float x, y;
+};
 
 struct matrix
 {
@@ -21,6 +27,7 @@ struct matrix
 
 vector operator*(matrix a, vector b);
 vector operator+(vector a, vector b);
+//void operator=(vector a, vector b);
 float operator*(vector a, vector b);
 vector normalize (vector a);
 matrix setAngle(float radAngle);
@@ -34,13 +41,11 @@ public:
     void turn (float degree);    //  NOTE:
     //  We allow turning for more than 360 degree (that's may be bad because of float precision)
     void stop();
-    void moveByVector (float speed, vector guide);  //  Main moving func
+    void moveByVector (float speed, vector toMove);  //  Main moving func
 
 private:
-    vector * guide; //  Guiding vector
-    wheel * _1;     //  Wheels. May be put into an array, but for now - as is.
-    wheel * _2;
-    wheel * _3;
+    QList<wheel *> * wheels;      //  Wheels.
+    QList<vector *> * guide;      //  Guiding vector
     void turnLeft (float degree);   //  Precise turns
     void turnRight (float degree);
 

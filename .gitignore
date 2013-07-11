@@ -1,0 +1,10 @@
+*.o
+build-*
+moc_*
+Trik/*
+untitled*
+*.user
+*.sh
+
+control-panel/*
+
