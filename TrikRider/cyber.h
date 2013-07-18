@@ -4,13 +4,22 @@
 #include <QObject>
 #include <QSharedPointer>
 #include <QList>
+#include <QQuaternion>
 
 #include "wheel.h"
-#include "gyro.h"
+#include "gyroscope.h"
 
 #include <cmath>
 
 const float degPerSecMCoef = 1;
+
+//  Garbage struct accel
+struct accelerometer
+{
+    float x;
+    float y;
+    float z;
+};
 
 struct vector
 {
@@ -38,16 +47,21 @@ class Cyber : public QObject
 public:
     explicit Cyber(QObject *parent = 0);
     ~Cyber();
-    void turn (float degree);    //  NOTE:
+    void turn (float degree);   //  NOTE:
     //  We allow turning for more than 360 degree (that's may be bad because of float precision)
     void stop();
     void moveByVector (float speed, vector toMove);  //  Main moving func
 
 private:
-    QList<wheel *> * wheels;      //  Wheels.
-    QList<vector *> * guide;      //  Guiding vector
+    QList<wheel *> * wheels;        //  Wheels.
+//    QList<vector *> * guide;        //  Guiding vector
+    vector * guide;
+    Gyroscope * gyro;
+    gyro_pos * current;             //  Current gyro tilt
+    gyro_pos * absolute;            //  Absolute gyro pos (x axis is forward, z axis is -g)
     void turnLeft (float degree);   //  Precise turns
     void turnRight (float degree);
+    void calibrate ();              //  Calibrating function
 
 signals:
     

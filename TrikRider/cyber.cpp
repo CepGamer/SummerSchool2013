@@ -3,23 +3,23 @@
 Cyber::Cyber(QObject *parent) :
     QObject(parent)
 {
-    wheels = new QList<wheel *>;
-    guide = new QList<vector *>;
-    vector a;   //  Guiding vector for all
-    a.x = 0;
-    a.y = 1;
-    guide->append( &a );
-    wheels->append(new wheel (0));    //  First wheel
+    wheels = new QList<wheel *>();
+//    guide = new QList<vector *>();
+    gyro = new Gyroscope(this);
+    guide = new vector[3];         //  Guiding vectors for all
+//    curr = new gyro_pos;
 
-    a.x = cos(2 * Pi / 3);
-    a.y = -sin(2 * Pi / 3);
-    guide->append( &a );
-    wheels->append( new wheel (1));    //  Second
+    guide[0].x = cos(-Pi / 2);
+    guide[0].y = sin(-Pi / 2);
+    wheels->append(new wheel (0));      //  First wheel
 
-    a.x = cos(4 * Pi / 3);
-    a.y = -sin(4 * Pi / 3);
-    guide->append( &a );
-    wheels->append( new wheel (2));    //  Third
+    guide[1].x = cos(2 * Pi / 3 - Pi / 2);
+    guide[1].y = sin(2 * Pi / 3 - Pi / 2);
+    wheels->append( new wheel (1));     //  Second
+
+    guide[2].x = cos(4 * Pi / 3 - Pi / 2);
+    guide[2].y = sin(4 * Pi / 3 - Pi / 2);
+    wheels->append( new wheel (2));     //  Third
 }
 
 vector operator *(matrix a, vector b)
@@ -49,7 +49,7 @@ float operator*(vector a, vector b)
     return a.x * b.x + a.y * b.y;   //  Scalar multiplying
 }
 
-vector normalize (vector a)
+vector normalize(vector a)
 {
     vector b;   //  Resulting vector
     //  Plain math here, nothing to look at, move along
@@ -74,18 +74,22 @@ Cyber::~Cyber()
     wheels->at(0)->~wheel();
     wheels->at(1)->~wheel();
     wheels->at(2)->~wheel();
+
     delete wheels;
+    delete guide;
+    delete gyro;
+    delete current;
+    delete absolute;
 }
 
 void Cyber::turn (float degree)
 {
     if (degree > 0)
     {
-        printf("Degree is big, running\n");
-        turnLeft(degree);   //  If we turn
+        turnRight(degree);   //  If we turn
     }
     else if (degree < 0)
-        turnRight(-degree);
+        turnLeft(-degree);
 }
 
 void Cyber::stop()
@@ -97,19 +101,32 @@ void Cyber::stop()
 
 void Cyber::moveByVector(float speed, vector toMove)
 {
-    wheels->at(0)->spin((toMove * *guide->at(0)) * speed);    //  Get those wheels spinning
-    wheels->at(1)->spin((toMove * *guide->at(1)) * speed);
-    wheels->at(2)->spin((toMove * *guide->at(2)) * speed);
+    qDebug() << "First engine speed:\t" << (qreal)(toMove * guide[0]);
+    qDebug() << "First engine vector:\t" << guide[0].x << '\t' << guide[0].y;
+    qDebug() << "guide[0]:\t" << (qreal)guide[0].x << '\t' << (qreal)guide[0].y;
+    wheels->at(0)->spin((toMove * guide[0]) * speed);    //  Get those wheels spinning
+
+    qDebug() << "Second engine speed:\t" << (qreal)(toMove * guide[1]);
+    qDebug() << "Second engine vector:\t" << guide[1].x << '\t' << guide[1].y;
+    qDebug() << "guide[1]:\t" << (qreal)guide[1].x << '\t' << (qreal)guide[1].y;
+    wheels->at(1)->spin((toMove * guide[1]) * speed);
+
+    qDebug() << "Third engine speed:\t" << (qreal)(toMove * guide[2]);
+    qDebug() << "First engine vector:\t" << guide[2].x << '\t' << guide[2].y;
+    qDebug() << "guide[2]:\t" << (qreal)guide[2].x << '\t' << (qreal)guide[2].y;
+    wheels->at(2)->spin((toMove * guide[2]) * speed);
     //  Will add code when the gyro ready
 }
 
 void Cyber::turnLeft(float degree)
 {
-    printf ("\nStart engine #1\n");
+    qDebug() << "Start engine #1";
     wheels->at(0)->spin(50, degree / degPerSecMCoef);   //  spinning dem wheels
-    printf ("\nStart engine #2\n");
+
+    qDebug() << "Start engine #2";
     wheels->at(1)->spin(50, degree / degPerSecMCoef);
-    printf ("\nStart engine #3\n");
+
+    qDebug() << "Start engine #3";
     wheels->at(2)->spin(50, degree / degPerSecMCoef);
     //  Again, some code after gyro
 
@@ -117,7 +134,21 @@ void Cyber::turnLeft(float degree)
 
 void Cyber::turnRight(float degree)
 {
-    wheels->at(0)->spin(3, degree / degPerSecMCoef);
-    wheels->at(1)->spin(3, degree / degPerSecMCoef);
-    wheels->at(2)->spin(3, degree / degPerSecMCoef);
+    qDebug() << "Start engine #1, DpMSec is:\t" << degree / degPerSecMCoef;
+    wheels->at(0)->spin(-50, degree / degPerSecMCoef);
+
+    qDebug() << "Start engine #2";
+    wheels->at(1)->spin(-50, degree / degPerSecMCoef);
+
+    qDebug() << "Start engine #3";
+    wheels->at(2)->spin(-50, degree / degPerSecMCoef);
+}
+
+void Cyber::calibrate()
+{
+    gyro->setConnection();
+/*    curr->m_tiltX = gyro->getTiltX();
+    curr->m_tiltY = gyro->getTiltY();
+    curr->m_tiltZ = gyro->getTiltZ();*/
+//    QTimer::singleShot(10000, this, SLOT());
 }

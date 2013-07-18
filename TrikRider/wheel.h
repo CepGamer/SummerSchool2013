@@ -12,16 +12,16 @@
 const float Pi = 3.1415926535;  //  Needed for some calc's
 const float nsInMs = 1000000.0;
 const float msecsInPerc = 0.2;
-const int zeroPoint = 8000000;
-const int amplitude = 4000000;
+const int zeroPoint = 1505000;
+const int amplitude = 200000;
 
 class wheel : public QObject
 {
     Q_OBJECT
 public:
     explicit wheel(int wheelNumber, QObject *parent = 0);
-    ~wheel ();      //  Destroys the wheel
-    void stop();    //  Stops
+    ~wheel ();                  //  Destroys the wheel
+    void stop();                //  Stops
     void spin(float speed);     //  Spin continiously
     void spin(float speed, float msecs);    //  Spin during some time
 
@@ -33,10 +33,10 @@ private:
     QFile * run;            //  Run signal
     QTimer * stopTimer;     //  Stopping timer
     int wheelNum;           //  Wheel number
-    void spinForw(float speed);     //  Precise spin
-    void spinBackw(float speed);
-    void spinForw(float speed, float msecs);
-    void spinBackw(float speed, float msecs);
+//    void spinForw(float speed);     //  Precise spin
+//    void spinBackw(float speed);
+//    void spinForw(float speed, float msecs);
+//    void spinBackw(float speed, float msecs);
     int setDutyNs(float speed);
 
 signals:
