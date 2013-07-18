@@ -21,7 +21,10 @@ Gyroscope::Gyroscope(QObject *parent) :
 
 void Gyroscope::setConnection()
 {
-    ke_gyroFd = open(ke_path.toAscii().data(), O_SYNC, O_RDONLY);
+
+    ke_port = 22;                   //  Standart port
+    ke_path = "/dev/input/event2";  //  Standart path
+    ke_gyroFd = open(ke_path.toStdString().data(), O_SYNC, O_RDONLY);
     if (ke_gyroFd == -1)
     {
         qDebug() << "Cannot open gyroscope input file " << ke_path << ", reason: " << errno;
@@ -34,15 +37,30 @@ void Gyroscope::setConnection()
     ke_SocketNotifier->setEnabled(true);
 }
 
-void Gyroscope::setPort(int port)
+void Gyroscope::setPort(int port = 22)
 {
     ke_port = port;
 }
 
-void Gyroscope::setPath(QString path)
+void Gyroscope::setPath(QString path = QString("/dev/input/event2") )
 {
     ke_path = path;
     // "/dev/input/event2"
+}
+
+float Gyroscope::getTiltX()
+{
+    return (float) m_tiltX;
+}
+
+float Gyroscope::getTiltY()
+{
+    return (float) m_tiltY;
+}
+
+float Gyroscope::getTiltZ()
+{
+    return (float) m_tiltZ;
 }
 
 void Gyroscope::readGyroEvent()
@@ -63,12 +81,14 @@ void Gyroscope::readGyroEvent()
             case ABS_Y: m_tiltY = event.value; break;
             case ABS_Z: m_tiltZ = event.value; break;
         }
-        fullMessage.sprintf("VALUE:%d %d %d\r\n",
+/*        fullMessage.sprintf("VALUE:%d %d %d\r\n",
                            static_cast<int>(m_tiltX),
                            static_cast<int>(m_tiltY),
-                           static_cast<int>(m_tiltZ));
+                           static_cast<int>(m_tiltZ));*/
+        fullMessage.sprintf("VALUE: %g\t%g\t%g\r\n", m_tiltX, m_tiltY, m_tiltZ );
         break;
     case EV_SYN:
         qDebug() << fullMessage;
+        break;
     }
 }

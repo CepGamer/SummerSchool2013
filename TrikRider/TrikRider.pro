@@ -1,8 +1,10 @@
 HEADERS += \
     cyber.h \
-    wheel.h
+    wheel.h \
+    gyroscope.h
 
 SOURCES += \
     cyber.cpp \
     wheel.cpp \
-    main.cpp
+    main.cpp \
+    gyroscope.cpp
