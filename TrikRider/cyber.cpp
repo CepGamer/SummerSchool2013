@@ -163,6 +163,7 @@ void Cyber::calibrate()
     angles->m_tiltY = gyro->getTiltY();
     angles->m_tiltZ = gyro->getTiltZ();
     //    QTimer::singleShot(10000, this, SLOT());
+    //  Set calibration
 }
 
 void Cyber::checkPosition()
@@ -179,5 +180,5 @@ void Cyber::checkPosition()
     //  Angles correction
 
     position = position + ( (kalmanCoef / (checksPerSecond * checksPerSecond * 2)) * acceleration + ((1 - kalmanCoef)) * (moving));
-//    position = kalmanCoef * current->m_tiltZ + (1 - kalmanCoef) * (position + moving);
+    //  position = kalmanCoef * current->m_tiltZ + (1 - kalmanCoef) * (position + moving);
 }

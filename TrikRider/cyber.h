@@ -23,6 +23,14 @@ struct accelerometer
     float z;
 };
 
+//  Garbage struct accel
+struct accelerometer
+{
+    float x;
+    float y;
+    float z;
+};
+
 struct vector
 {
     float x, y;

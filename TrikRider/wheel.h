@@ -39,7 +39,7 @@ private:
 //    void spinBackw(float speed);
 //    void spinForw(float speed, float msecs);
 //    void spinBackw(float speed, float msecs);
-    int setDutyNs(float speed);
+    inline int setDutyNs(float speed);
 
 signals:
 
