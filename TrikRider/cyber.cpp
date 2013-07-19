@@ -91,6 +91,11 @@ Cyber::~Cyber()
     delete wheels;
     delete guide;
     delete gyro;
+<<<<<<< HEAD
+=======
+    delete current;
+    delete absolute;
+>>>>>>> ca0d0bc8aa2db98c444e34d551ad5490ee28f400
 }
 
 void Cyber::turn (float degree)
@@ -157,6 +162,7 @@ void Cyber::turnRight(float degree)
 
 void Cyber::calibrate()
 {
+<<<<<<< HEAD
     direction.x = direction.y = position.x = position.y = 0;
     gyro->setConnection();
     angles->m_tiltX = gyro->getTiltX();
@@ -180,4 +186,11 @@ void Cyber::checkPosition()
 
     position = position + ( (kalmanCoef / (checksPerSecond * checksPerSecond * 2)) * acceleration + ((1 - kalmanCoef)) * (moving));
 //    position = kalmanCoef * current->m_tiltZ + (1 - kalmanCoef) * (position + moving);
+=======
+    gyro->setConnection();
+/*    curr->m_tiltX = gyro->getTiltX();
+    curr->m_tiltY = gyro->getTiltY();
+    curr->m_tiltZ = gyro->getTiltZ();*/
+//    QTimer::singleShot(10000, this, SLOT());
+>>>>>>> ca0d0bc8aa2db98c444e34d551ad5490ee28f400
 }

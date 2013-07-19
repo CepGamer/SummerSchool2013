@@ -23,6 +23,14 @@ struct accelerometer
     float z;
 };
 
+//  Garbage struct accel
+struct accelerometer
+{
+    float x;
+    float y;
+    float z;
+};
+
 struct vector
 {
     float x, y;
@@ -60,6 +68,7 @@ private:
     QList<wheel *> * wheels;        //  Wheels.
 //    QList<vector *> * guide;        //  Guiding vector
     vector * guide;
+<<<<<<< HEAD
     vector position;                //  Absolute position in the world
     vector direction;               //  Absolute direction
     vector acceleration;            //  Absolute acceleration
@@ -68,6 +77,11 @@ private:
 
     gyro_pos angles;             //  Current gyro tilt
 //    gyro_pos * absolute;            //  Absolute gyro pos (x axis is forward, z axis is -g)
+=======
+    Gyroscope * gyro;
+    gyro_pos * current;             //  Current gyro tilt
+    gyro_pos * absolute;            //  Absolute gyro pos (x axis is forward, z axis is -g)
+>>>>>>> ca0d0bc8aa2db98c444e34d551ad5490ee28f400
     void turnLeft (float degree);   //  Precise turns
     void turnRight (float degree);
     void calibrate ();              //  Calibrating function

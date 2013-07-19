@@ -22,9 +22,14 @@ public:
     explicit wheel(int wheelNumber, QObject *parent = 0);
     ~wheel ();                  //  Destroys the wheel
     void stop();                //  Stops
+<<<<<<< HEAD
     void spin(float nspeed);    //  Spin continiously
     void spin(float nspeed, float msecs);   //  Spin during some time
     inline float getSpeed();
+=======
+    void spin(float speed);     //  Spin continiously
+    void spin(float speed, float msecs);    //  Spin during some time
+>>>>>>> ca0d0bc8aa2db98c444e34d551ad5490ee28f400
 
 private:
     //  Serie of files that controls the drives
@@ -34,7 +39,10 @@ private:
     QFile * run;            //  Run signal
     QTimer * stopTimer;     //  Stopping timer
     int wheelNum;           //  Wheel number
+<<<<<<< HEAD
     float speed;            //  Wheel speed (in percents)
+=======
+>>>>>>> ca0d0bc8aa2db98c444e34d551ad5490ee28f400
 //    void spinForw(float speed);     //  Precise spin
 //    void spinBackw(float speed);
 //    void spinForw(float speed, float msecs);

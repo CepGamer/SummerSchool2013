@@ -3,6 +3,8 @@
 
 int main (int argc, char ** argv)
 {
+    vector c;
+    float x, y;
     QCoreApplication * a = new QCoreApplication (argc, argv);
     vector c;
     float x;
@@ -10,7 +12,6 @@ int main (int argc, char ** argv)
     Cyber * b = new Cyber();
     qDebug() << "Engines is going to run";
     while(scanf("%f", &x))
-    {
         switch(qRound(x))
         {
             case 0:
@@ -30,7 +31,6 @@ int main (int argc, char ** argv)
                 b->moveByVector(70, normalize(c));
             break;
         }
-    }
     qDebug() << "Exited program";
     return a->exec();
 }

@@ -111,6 +111,17 @@ void wheel::spinForw(float speed, float msecs)
 }
 
 void wheel::spinBackw(float speed)
+<<<<<<< HEAD
+=======
+{
+    duty_ns->write(QString::number(setDutyNs (speed)).toStdString().data());
+    run->write("1");
+    duty_ns->flush();
+    run->flush();
+}*/
+
+int wheel::setDutyNs(float speed)
+>>>>>>> ca0d0bc8aa2db98c444e34d551ad5490ee28f400
 {
     duty_ns->write(QString::number(setDutyNs (speed)).toStdString().data());
     run->write("1");
@@ -134,6 +145,7 @@ void wheel::spin(float nspeed)
 
 void wheel::spin(float nspeed, float msecs)
 {
+<<<<<<< HEAD
     speed = nspeed;
     if (speed > 100 || speed < -100)
     {
@@ -168,10 +180,54 @@ float wheel::getSpeed()
 int wheel::setDutyNs(float speed)
 {
     return zeroPoint + (speed * amplitude) / 100; //  Convert percents into nsecs
+=======
+    qDebug() << "Entered StopSlot";
+    stop();
+}
+
+void wheel::spin(float speed)
+{
+    if (speed > 100 || speed < -100)
+    {
+        qDebug() << "Wrong speed on wheel #" << wheelNum;
+        return ;
+    }
+    duty_ns->write(QString::number(setDutyNs (speed)).toStdString().data());
+    run->write("1");
+    duty_ns->flush();
+    run->flush();
+>>>>>>> ca0d0bc8aa2db98c444e34d551ad5490ee28f400
 }
 
 void wheel::stopSlot()
 {
+<<<<<<< HEAD
     qDebug() << "Entered StopSlot";
     stop();
+=======
+    if (speed > 100 || speed < -100)
+    {
+        //  We set speed in percents
+        qDebug() << "Wrong speed";
+    }
+    //  Debug printing
+//    printf("duty_ns must be:\n%d\nBut now it:\n%d\n", (int) (setDutyNs (speed)), 1700000);
+
+    if(duty_ns->write(QString::number((setDutyNs (speed))).toStdString().data()) == -1)
+    {
+        qDebug() << "Nothing written to duty_ns";
+    }
+    if(run->write("1") == -1)
+    {
+        qDebug () << "Nothing is written to run";
+    }
+    duty_ns->flush();
+    run->flush();
+//    printf("%s\n%s\n%s\n", period_freq->readAll().constData(), duty_ns->readAll().constData(), run->readAll().constData());
+    qDebug() << "Start singleshot, msecs is:\t" << msecs * 1000;
+    qDebug() << "stopTimer is singleShot: " << stopTimer->isSingleShot();
+//    QTimer::singleShot((int) msecs * 1000, this, SLOT(stopSlot()));
+//    stopTimer->singleShot((int) msecs, this, SLOT(stopSlot()));
+    stopTimer->start((int) msecs);
+>>>>>>> ca0d0bc8aa2db98c444e34d551ad5490ee28f400
 }

@@ -12,8 +12,11 @@
 #include <QSocketNotifier>
 //#include <QUdpSocket>
 
+<<<<<<< HEAD
 const qreal gyroConvConst = 1;
 
+=======
+>>>>>>> ca0d0bc8aa2db98c444e34d551ad5490ee28f400
 struct gyro_pos
 {
     float m_tiltX;  //  Roll, тангаж
