@@ -1,61 +1,91 @@
 #include "wheel.h"
 
-wheel::wheel(int wheelNumber, QObject *parent) :
+wheel::wheel(int wheelNumber, connectionMode mod, QObject *parent) :
     QObject(parent)
 {
     wheelNum = wheelNumber;
-    QString s = QString ("/sys/class/pwm/ecap." + QString::number(wheelNum) + "/");    //  Get full path to engines
-    request = new QFile (s + QString("request"));
+    cMode = mod;
+    switch (cMode) {
+    case API:
+        path = new QString ("/sys/class/pwm/ecap." + QString::number(wheelNum) + "/");    //  Get full path to engines
+        request = new QFile (*path + QString("request"));
+        if(!request->open(QFile::WriteOnly))
+        {
+            qDebug() << "Cannot open request #" << wheelNumber;
+        }
+        if(request->write("1") == -1 || !request->flush())
+        {
+            qDebug() << "Permission is not given to engine #" << wheelNumber;
+        }
+        period_ns = new QFile (*path + QString("period_ns"), this);
+        duty_ns = new QFile (*path + QString("duty_ns"), this);
+        run = new QFile (*path + QString("run"), this);
+        if(!(period_ns->open(QFile::WriteOnly) && duty_ns->open(QFile::WriteOnly) && run->open(QFile::WriteOnly)))
+        {
+            qDebug() << "Cannot open either run or duty or period #" << wheelNumber;
+        }
+        //  Do I need to set freq right now?
+        period_ns->write("20000000");
+        period_ns->flush();
+        //  Well...
+        break;
+    case I2C:
+        message = new QString();
+        break;
+    default:
+        break;
+    }
     stopTimer = new QTimer (this);
     connect(stopTimer, SIGNAL(timeout()), this, SLOT(stopSlot()));
     stopTimer->setSingleShot(true);
-    if(!request->open(QFile::WriteOnly))
-    {
-        qDebug() << "Cannot open request #n" << wheelNumber;
-    }
-    if(request->write("1") == -1 || !request->flush())
-    {
-        qDebug() << "Permission is not given to engine #" << wheelNumber;
-    }
-    period_ns = new QFile (s + QString("period_ns"), this);
-    duty_ns = new QFile (s + QString("duty_ns"), this);
-    run = new QFile (s + QString("run"), this);
-    if(!(period_ns->open(QFile::WriteOnly) && duty_ns->open(QFile::WriteOnly) && run->open(QFile::WriteOnly)))
-    {
-        qDebug() << "Cannot open either run or duty or period #" << wheelNumber;
-    }
-    //  Do I need to set freq right now?
-    period_ns->write("20000000");
-    period_ns->flush();
-    //  Well...
 }
 
 wheel::~wheel()
 {
-    run->write("0");
-    //  Do we need to clean other files?
-    run->close();
-    period_ns->close();
-    duty_ns->close();
-    request->write("0");
-    request->close();
-    //  Delete after closing
-    delete run;
-    delete duty_ns;
-    delete period_ns;
-    delete request;
+    switch (cMode) {
+    case API:
+        run->write("0");
+        //  Do we need to clean other files?
+        run->close();
+        period_ns->close();
+        duty_ns->close();
+        request->write("0");
+        request->close();
+        //  Delete after closing
+        delete run;
+        delete duty_ns;
+        delete period_ns;
+        delete request;
+        break;
+    case I2C:
+        delete message;
+        break;
+    }
     delete stopTimer;
 }
 
 void wheel::stop()
 {
     qDebug() << "Stop engine";
-    run->write("0");
-    if(!run->flush())
-    {
-        qDebug() << "I can't stop! Run isn't flushing";
+    rMode = NEUTRAL;
+    switch (cMode) {
+    case API:
+        run->write("0");
+        if(!run->flush())
+        {
+            qDebug() << "I can't stop! Run isn't flushing";
+        }
+        request->write("0");
+        break;
+    case I2C:
+        message->clear();
+        message->append("i2cset -y 2 0x48 0x0 0x");
+        message->append(QString::number((((int) speed ) << 8 ) + (wheelNum << 2) + rMode, 16)); //  Number, Base
+        message->append(" w");
+        qDebug() << message;
+        system(message->toStdString().data());
+        break;
     }
-    request->write("0");
 }
 
 /*void wheel::spinForw(float speed)
@@ -126,10 +156,25 @@ void wheel::spin(float nspeed)
         qDebug() << "Wrong speed on wheel #" << wheelNum;
         return ;
     }
-    duty_ns->write(QString::number(setDutyNs (speed)).toStdString().data());
-    run->write("1");
-    duty_ns->flush();
-    run->flush();
+    rMode = (speed > 0) ? FORW : BACKW;
+    switch(cMode)
+    {
+    case API:
+        duty_ns->write(QString::number(setDutyNs (speed)).toStdString().data());
+        run->write("1");
+        duty_ns->flush();
+        run->flush();
+        break;
+    case I2C:
+        message->clear();
+        message->append("i2cset -y 2 0x48 0x0 0x");
+        message->append(QString::number((((int) speed * (speed > 0 ? 1 : -1) ) << 8 )\
+                                                        + (wheelNum << 2) + rMode, 16));
+        message->append(" w");
+        qDebug() << message->toStdString().data();
+        system(message->toStdString().data());
+        break;
+    }
 }
 
 void wheel::spin(float nspeed, float msecs)
@@ -140,19 +185,31 @@ void wheel::spin(float nspeed, float msecs)
         //  We set speed in percents
         qDebug() << "Wrong speed";
     }
+    rMode = (speed > 0) ? FORW : BACKW;
     //  Debug printing
-
-    if(duty_ns->write(QString::number((setDutyNs (speed))).toStdString().data()) == -1)
+    switch(cMode)
     {
-        qDebug() << "Nothing written to duty_ns";
+    case API:
+        if(duty_ns->write(QString::number((setDutyNs (speed))).toStdString().data()) == -1)
+        {
+            qDebug() << "Nothing written to duty_ns";
+        }
+        if(run->write("1") == -1)
+        {
+            qDebug () << "Nothing is written to run";
+        }
+        duty_ns->flush();
+        run->flush();
+        break;
+    case I2C:
+        message->clear();
+        message->append("i2cset -y 2 0x48 0x0 0x");
+        message->append(QString::number((((int) speed * (speed > 0 ? 1 : -1) ) << 8 )\
+                                                        + (wheelNum << 2) + rMode, 16));
+        message->append(" w");
+        system(message->toStdString().data());
+        break;
     }
-    if(run->write("1") == -1)
-    {
-        qDebug () << "Nothing is written to run";
-    }
-    duty_ns->flush();
-    run->flush();
-//    printf("%s\n%s\n%s\n", period_freq->readAll().constData(), duty_ns->readAll().constData(), run->readAll().constData());
     qDebug() << "Start singleshot, msecs is:\t" << msecs * 1000;
     qDebug() << "stopTimer is singleShot: " << stopTimer->isSingleShot();
 //    QTimer::singleShot((int) msecs * 1000, this, SLOT(stopSlot()));

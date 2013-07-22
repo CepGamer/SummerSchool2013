@@ -23,14 +23,6 @@ struct accelerometer
     float z;
 };
 
-//  Garbage struct accel
-struct accelerometer
-{
-    float x;
-    float y;
-    float z;
-};
-
 struct vector
 {
     float x, y;
@@ -57,7 +49,7 @@ class Cyber : public QObject
 {
     Q_OBJECT
 public:
-    explicit Cyber(QObject *parent = 0);
+    explicit Cyber(connectionMode cMode, QObject *parent = 0);
     ~Cyber();
     void turn (float degree);   //  NOTE:
     //  We allow turning for more than 360 degree (that's may be bad because of float precision)
@@ -85,7 +77,7 @@ signals:
 public slots:
 
 private slots:
-//    void checkPosition();
+    void checkPosition();
     
 };
 

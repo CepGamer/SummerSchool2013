@@ -8,4 +8,10 @@ untitled*
 Makefile
 control-panel/*
 TrikRider/TrikRider
+*.tar.*
+*.tar
+GyroControl/*
+RemoteSystemsTempFiles/*
+.metadata
+TOMMYAndroid*
 

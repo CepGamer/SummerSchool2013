@@ -28,9 +28,9 @@ public:
     Gyroscope(QObject *parent = 0);
     void setPort(int port);
     void setPath(QString path);
-    inline float getTiltX();
-    inline float getTiltY();
-    inline float getTiltZ();
+    float getTiltX();
+    float getTiltY();
+    float getTiltZ();
 
 signals:
     

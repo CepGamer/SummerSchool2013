@@ -1,6 +1,6 @@
 #include "cyber.h"
 
-Cyber::Cyber(QObject *parent) :
+Cyber::Cyber(connectionMode cMode, QObject *parent) :
     QObject(parent)
 {
     wheels = new QList<wheel *>();
@@ -11,15 +11,15 @@ Cyber::Cyber(QObject *parent) :
 
     guide[0].x = cos(-Pi / 2);
     guide[0].y = sin(-Pi / 2);
-    wheels->append(new wheel (0));      //  First wheel
+    wheels->append( new wheel (0, cMode));      //  First wheel
 
     guide[1].x = cos(2 * Pi / 3 - Pi / 2);
     guide[1].y = sin(2 * Pi / 3 - Pi / 2);
-    wheels->append( new wheel (1));     //  Second
+    wheels->append( new wheel (1, cMode));     //  Second
 
     guide[2].x = cos(4 * Pi / 3 - Pi / 2);
     guide[2].y = sin(4 * Pi / 3 - Pi / 2);
-    wheels->append( new wheel (2));     //  Third
+    wheels->append( new wheel (2, cMode));     //  Third
 }
 
 vector operator *(matrix a, vector b)
@@ -159,9 +159,9 @@ void Cyber::calibrate()
 {
     direction.x = direction.y = position.x = position.y = 0;
     gyro->setConnection();
-    angles->m_tiltX = gyro->getTiltX();
-    angles->m_tiltY = gyro->getTiltY();
-    angles->m_tiltZ = gyro->getTiltZ();
+    angles.m_tiltX = gyro->getTiltX();
+    angles.m_tiltY = gyro->getTiltY();
+    angles.m_tiltZ = gyro->getTiltZ();
     //    QTimer::singleShot(10000, this, SLOT());
     //  Set calibration
 }
@@ -179,6 +179,7 @@ void Cyber::checkPosition()
     angles.m_tiltZ = gyro->getTiltZ();
     //  Angles correction
 
-    position = position + ( (kalmanCoef / (checksPerSecond * checksPerSecond * 2)) * acceleration + ((1 - kalmanCoef)) * (moving));
-    //  position = kalmanCoef * current->m_tiltZ + (1 - kalmanCoef) * (position + moving);
+    position = position + ( (kalmanCoef / (checksPerSecond * checksPerSecond * 2)) * acceleration \
+                            + ((1 - kalmanCoef) / checksPerSecond) * (moving));
+    direction = direction + (kalmanCoef / checksPerSecond) * (setAngle( angles.m_tiltZ ) * direction);
 }
