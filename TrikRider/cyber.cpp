@@ -9,17 +9,25 @@ Cyber::Cyber(connectionMode cMode, QObject *parent) :
     guide = new vector[3];         //  Guiding vectors for all
 //    curr = new gyro_pos;
 
+    gyro->setConnection();
     guide[0].x = cos(-Pi / 2);
     guide[0].y = sin(-Pi / 2);
-    wheels->append( new wheel (0, cMode));      //  First wheel
+    wheels->append( new wheel (1, cMode));      //  First wheel
 
     guide[1].x = cos(2 * Pi / 3 - Pi / 2);
     guide[1].y = sin(2 * Pi / 3 - Pi / 2);
-    wheels->append( new wheel (1, cMode));     //  Second
+    wheels->append( new wheel (3, cMode));     //  Second
 
     guide[2].x = cos(4 * Pi / 3 - Pi / 2);
     guide[2].y = sin(4 * Pi / 3 - Pi / 2);
     wheels->append( new wheel (2, cMode));     //  Third
+
+    position.x = position.y = \
+            direction.x = direction.y = \
+            acceleration.x = acceleration.y = 0;
+
+    checkTimer = new QTimer(this);
+    count = 0;
 }
 
 vector operator *(matrix a, vector b)
@@ -30,7 +38,7 @@ vector operator *(matrix a, vector b)
     return toRet;
 }
 
-vector operator*(float a, vector b)
+vector operator*(qreal a, vector b)
 {
     vector toRet;
     toRet.x = b.x * a;
@@ -38,7 +46,7 @@ vector operator*(float a, vector b)
     return toRet;
 }
 
-vector operator*(vector a, float b)
+vector operator*(vector a, qreal b)
 {
     return b * a;
 }
@@ -57,7 +65,7 @@ vector operator +(vector a, vector b)
     a.y = b.y;
 }
 */
-float operator*(vector a, vector b)
+qreal operator*(vector a, vector b)
 {
     return a.x * b.x + a.y * b.y;   //  Scalar multiplying
 }
@@ -66,13 +74,13 @@ vector normalize(vector a)
 {
     vector b;   //  Resulting vector
     //  Plain math here, nothing to look at, move along
-    float mod = a.x * a.x + a.y * a.y;
+    qreal mod = a.x * a.x + a.y * a.y;
     b.x = a.x / mod;
     b.y = a.y / mod;
     return b;
 }
 
-matrix setAngle(float radAngle)
+matrix setAngle(qreal radAngle)
 {
     matrix toRet;
     toRet._11 = cos(radAngle);
@@ -82,18 +90,27 @@ matrix setAngle(float radAngle)
     return toRet;
 }
 
+vector setVAngle(qreal radAngle)
+{
+    vector toRet;
+    toRet.x = qCos(radAngle);
+    toRet.y = qSin(radAngle);
+    return toRet;
+}
+
 Cyber::~Cyber()
 {
-    wheels->at(0)->~wheel();
-    wheels->at(1)->~wheel();
-    wheels->at(2)->~wheel();
+    delete wheels->at(0);
+    delete wheels->at(1);
+    delete wheels->at(2);
 
+    delete checkTimer;
     delete wheels;
     delete guide;
     delete gyro;
 }
 
-void Cyber::turn (float degree)
+void Cyber::turn (qreal degree)
 {
     if (degree > 0)
     {
@@ -110,76 +127,125 @@ void Cyber::stop()
     wheels->at(2)->stop();
 }
 
-void Cyber::moveByVector(float speed, vector toMove)
+void Cyber::moveByVector(qreal speed, vector toMove)
 {
-    qDebug() << "First engine speed:\t" << (qreal)(toMove * guide[0]);
-    qDebug() << "First engine vector:\t" << guide[0].x << '\t' << guide[0].y;
-    qDebug() << "guide[0]:\t" << (qreal)guide[0].x << '\t' << (qreal)guide[0].y;
+
     wheels->at(0)->spin((toMove * guide[0]) * speed);    //  Get those wheels spinning
 
-    qDebug() << "Second engine speed:\t" << (qreal)(toMove * guide[1]);
-    qDebug() << "Second engine vector:\t" << guide[1].x << '\t' << guide[1].y;
-    qDebug() << "guide[1]:\t" << (qreal)guide[1].x << '\t' << (qreal)guide[1].y;
     wheels->at(1)->spin((toMove * guide[1]) * speed);
 
-    qDebug() << "Third engine speed:\t" << (qreal)(toMove * guide[2]);
-    qDebug() << "First engine vector:\t" << guide[2].x << '\t' << guide[2].y;
-    qDebug() << "guide[2]:\t" << (qreal)guide[2].x << '\t' << (qreal)guide[2].y;
     wheels->at(2)->spin((toMove * guide[2]) * speed);
-    //  Will add code when the gyro ready
+    //  Will add code when the gyro & accel ready
 }
 
-void Cyber::turnLeft(float degree)
+void Cyber::turnLeft(qreal degree)
 {
-    qDebug() << "Start engine #1";
-    wheels->at(0)->spin(50, degree / degPerSecMCoef);   //  spinning dem wheels
-
-    qDebug() << "Start engine #2";
-    wheels->at(1)->spin(50, degree / degPerSecMCoef);
-
-    qDebug() << "Start engine #3";
-    wheels->at(2)->spin(50, degree / degPerSecMCoef);
+    qDebug() << "Start engines";
+/*    wheels->at(0)->spin(100);   //  spinning dem wheels
+    wheels->at(1)->spin(100);
+    wheels->at(2)->spin(100);*/
+    leftRad = degree / 180 * Pi;
     //  Again, some code after gyro
-
+    connect(checkTimer, SIGNAL(timeout()), this, SLOT(turnLeftSlot()));
+    checkTimer->start(1000 / checksPerSecond);
 }
 
-void Cyber::turnRight(float degree)
+void Cyber::turnRight(qreal degree)
 {
-    qDebug() << "Start engine #1, DpMSec is:\t" << degree / degPerSecMCoef;
-    wheels->at(0)->spin(-50, degree / degPerSecMCoef);
-
-    qDebug() << "Start engine #2";
-    wheels->at(1)->spin(-50, degree / degPerSecMCoef);
-
-    qDebug() << "Start engine #3";
-    wheels->at(2)->spin(-50, degree / degPerSecMCoef);
+    qDebug() << "Start engines";
+    /*wheels->at(0)->spin(-100);
+    wheels->at(1)->spin(-100);
+    wheels->at(2)->spin(-100);*/
+    leftRad = degree / 180 * Pi;
+    connect(checkTimer, SIGNAL(timeout()), this, SLOT(turnRightSlot()));
+    checkTimer->start(1000 / checksPerSecond);
 }
 
 void Cyber::calibrate()
 {
     direction.x = direction.y = position.x = position.y = 0;
-    gyro->setConnection();
+//    gyro->setConnection();
     angles.m_tiltX = gyro->getTiltX();
     angles.m_tiltY = gyro->getTiltY();
     angles.m_tiltZ = gyro->getTiltZ();
     //    QTimer::singleShot(10000, this, SLOT());
     //  Set calibration
+    integrand = 0;
+    connect(checkTimer, SIGNAL(timeout()), this, SLOT(calibrateSlot()));
+    checkTimer->start(1000 / checksPerSecond);
 }
 
 void Cyber::checkPosition()
 {
     vector moving;
+    qreal angVelocityC = angVelocity / ((wheels->at(1)->getSpeed() > 75) ? 2 : 1);
+    vector on50percentSpeed;
+    currRad += angVelocityC / checksPerSecond;
+//    currRad = currRad % (2 * Pi);
+    on50percentSpeed.x = qCos(angVelocityC * 2 * Pi);
+    on50percentSpeed.y = qSin(angVelocityC * 2 * Pi);
     moving.x = 0;
     moving.y = 0;
     for (int i=0; i<3; i++)
         moving = moving + guide[i] * (wheels->at(i)->getSpeed() / 100);
-    gyro->setConnection();
+/*    for (int i=0; i<3; i++)
+        angVelocity += wheels->at(i)->getSpeed();
+        angVelocity = convertSpeed();   //  convert percents into speed. Or based on an encoder.
+*/
+//    gyro->readGyroEvent();
     angles.m_tiltX = gyro->getTiltX();
     angles.m_tiltY = gyro->getTiltY();
     angles.m_tiltZ = gyro->getTiltZ();
     //  Angles correction
-
+/*    qDebug() << "Pos is:\t" << position.x << '\t' << position.y << '\n'\
+             << "Dir is:\t" << direction.x << '\t' << direction.y;
     position = position + ( (kalmanCoef / (checksPerSecond * checksPerSecond * 2)) * acceleration \
-                            + ((1 - kalmanCoef) / checksPerSecond) * (moving));
-    direction = direction + (kalmanCoef / checksPerSecond) * (setAngle( angles.m_tiltZ ) * direction);
+                            + ((1 - kalmanCoef) / checksPerSecond) * (moving));*/
+    direction = direction + (kalmanCoef / checksPerSecond) * (setAngle( angles.m_tiltZ ) * direction) + \
+            ((1 - kalmanCoef) / checksPerSecond ) * on50percentSpeed;
+    absolute.m_tiltZ = kalmanCoef * angles.m_tiltZ + (1 - kalmanCoef) * angVelocityC;
+}
+
+void Cyber::turnLeftSlot()
+{
+    if(leftRad < 0.2)
+    {
+        checkTimer->stop();
+        checkTimer->disconnect(checkTimer, SIGNAL(timeout()), this, SLOT(turnLeftSlot()));
+        stop();
+    }
+    else if(leftRad < 2 * Pi)
+        for(int i=0; i<3; i++)
+            wheels->at(i)->spin(50);
+    checkPosition();
+    leftRad -= qAbs(absolute.m_tiltZ / checksPerSecond);
+}
+
+void Cyber::turnRightSlot()
+{
+    count++;
+    count %= checksPerSecond;
+    if(count == 0)
+        qDebug() << "leftRad is:\t" << QString::number(leftRad, 'f');
+    if(leftRad < 0.2)
+    {
+        checkTimer->stop();
+        checkTimer->disconnect(checkTimer, SIGNAL(timeout()), this, SLOT(turnRightSlot()));
+        stop();
+    }
+    else if(leftRad < 2 * Pi)
+        for(int i=0; i<3; i++)
+            wheels->at(i)->spin(-50);
+    checkPosition();
+    leftRad -= qAbs(absolute.m_tiltZ / checksPerSecond);
+}
+
+void Cyber::calibrateSlot()
+{
+    count++;
+    count %= checksPerSecond;
+    if(count == 0)
+        qDebug() << "Integrand is:\t" << QString::number(integrand, 'f');
+    checkPosition();
+    integrand += angles.m_tiltZ / checksPerSecond;
 }

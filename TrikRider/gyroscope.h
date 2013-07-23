@@ -10,15 +10,16 @@
 #include <QObject>
 #include <QDebug>
 #include <QSocketNotifier>
+#include <QTime>
 //#include <QUdpSocket>
 
-const qreal gyroConvConst = 1;
+const qreal gyroConvConst = 820.846931;     //  Constant from quadrocopter
 
 struct gyro_pos
 {
-    float m_tiltX;  //  Roll, тангаж
-    float m_tiltY;  //  Pitch, крен
-    float m_tiltZ;  //  Yaw, рысканье
+    qreal m_tiltX;  //  Roll, тангаж
+    qreal m_tiltY;  //  Pitch, крен
+    qreal m_tiltZ;  //  Yaw, рысканье
 };
 
 class Gyroscope : public QObject
@@ -26,11 +27,12 @@ class Gyroscope : public QObject
     Q_OBJECT
 public:
     Gyroscope(QObject *parent = 0);
-    void setPort(int port);
-    void setPath(QString path);
-    float getTiltX();
-    float getTiltY();
-    float getTiltZ();
+    ~Gyroscope();
+    inline void setPort(int port = 22){ ke_port = port; }
+    inline void setPath(QString path = QString("/dev/input/event2")) {ke_path = path;}  //  May be event1
+    inline qreal getTiltX() {return m_tiltX / gyroConvConst;}
+    inline qreal getTiltY() {return m_tiltY / gyroConvConst;}
+    inline qreal getTiltZ() {return m_tiltZ / gyroConvConst;}
 
 signals:
     
@@ -41,12 +43,15 @@ public slots:
 private:
     int                 ke_port;
     int                 ke_gyroFd;
-    double              m_tiltX;
-    double              m_tiltY;
-    double              m_tiltZ;
+    qreal               m_tiltX;
+    qreal               m_tiltY;
+    qreal               m_tiltZ;
     QString             ke_path;
     QString             fullMessage;
     QSocketNotifier    *ke_SocketNotifier;
+    quint32             count;
+    QTime              *begin;
+
 //    QUdpSocket        ke_udpSocket;
 };
 

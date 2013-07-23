@@ -11,39 +11,41 @@
 
 #include <cmath>
 
-const float degPerSecMCoef = 1;
-const int checksPerSecond = 10;
-const float kalmanCoef = 0.5;
+const qreal degPerSecMCoef = 1;
+const quint16 checksPerSecond = 50;
+const qreal kalmanCoef = 0.8;
+const qreal angVelocity = 4.487989339;
 
 //  Garbage struct accel
 struct accelerometer
 {
-    float x;
-    float y;
-    float z;
+    qreal x;
+    qreal y;
+    qreal z;
 };
 
 struct vector
 {
-    float x, y;
+    qreal x, y;
 };
 
 struct matrix
 {
-    float _11;
-    float _12;
-    float _21;
-    float _22;
+    qreal _11;
+    qreal _12;
+    qreal _21;
+    qreal _22;
 };
 
 vector operator*(matrix a, vector b);
-vector operator*(float a, vector b);
-inline vector operator*(vector a, float b);
+vector operator*(qreal a, vector b);
+inline vector operator*(vector a, qreal b);
 vector operator+(vector a, vector b);
 //void operator=(vector a, vector b);
-inline float operator*(vector a, vector b);
+inline qreal operator*(vector a, vector b);
 vector normalize (vector a);
-matrix setAngle(float radAngle);
+matrix setAngle(qreal radAngle);
+vector setVAngle(qreal radAngle);
 
 class Cyber : public QObject
 {
@@ -51,10 +53,11 @@ class Cyber : public QObject
 public:
     explicit Cyber(connectionMode cMode, QObject *parent = 0);
     ~Cyber();
-    void turn (float degree);   //  NOTE:
-    //  We allow turning for more than 360 degree (that's may be bad because of float precision)
+    void turn (qreal degree);   //  NOTE:
+    //  We allow turning for more than 360 degree (that's may be bad because of qreal precision)
     void stop();
-    void moveByVector (float speed, vector toMove);  //  Main moving func
+    void moveByVector (qreal speed, vector toMove);  //  Main moving func
+    void calibrate ();              //  Calibrating function
 
 private:
     QList<wheel *> * wheels;        //  Wheels.
@@ -63,14 +66,19 @@ private:
     vector position;                //  Absolute position in the world
     vector direction;               //  Absolute direction
     vector acceleration;            //  Absolute acceleration
+    qreal currRad;                  //  Current angle in radians
+    qreal leftRad;                  //  Left radians to turn
+    qreal integrand;
+    quint16 count;
+
+    QTimer * checkTimer;            //  Check position timer
 
     Gyroscope * gyro;
 
-    gyro_pos angles;             //  Current gyro tilt
-//    gyro_pos * absolute;            //  Absolute gyro pos (x axis is forward, z axis is -g)
-    void turnLeft (float degree);   //  Precise turns
-    void turnRight (float degree);
-    void calibrate ();              //  Calibrating function
+    gyro_pos angles;                //  Current gyro tilt
+    gyro_pos absolute;              //  Filtered gyro pos (x axis is forward, z axis is -g)
+    void turnLeft (qreal degree);   //  Precise turns
+    void turnRight (qreal degree);
 
 signals:
     
@@ -78,7 +86,10 @@ public slots:
 
 private slots:
     void checkPosition();
-    
+    void turnLeftSlot();
+    void turnRightSlot();
+    void calibrateSlot();
+
 };
 
 #endif // CYBER_H

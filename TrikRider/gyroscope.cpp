@@ -19,52 +19,42 @@ Gyroscope::Gyroscope(QObject *parent) :
 {
 }
 
+Gyroscope::~Gyroscope()
+{
+    delete ke_SocketNotifier;
+    delete begin;
+}
+
 void Gyroscope::setConnection()
 {
-
-    ke_port = 22;                   //  Standart port
-    ke_path = "/dev/input/event2";  //  Standart path
+    begin = new QTime();
+    begin->start();
+    setPort();                   //  Standart port
+    setPath(QString("/dev/input/event1"));  //  Standart path
     ke_gyroFd = open(ke_path.toStdString().data(), O_SYNC, O_RDONLY);
     if (ke_gyroFd == -1)
     {
         qDebug() << "Cannot open gyroscope input file " << ke_path << ", reason: " << errno;
     } else
     {
-        qDebug() << "File opened successfully";
+//        qDebug() << "File opened successfully";
     }
     ke_SocketNotifier = new QSocketNotifier(ke_gyroFd, QSocketNotifier::Read, this);
     connect(ke_SocketNotifier, SIGNAL(activated(int)), this, SLOT(readGyroEvent()));
     ke_SocketNotifier->setEnabled(true);
 }
 
-void Gyroscope::setPort(int port = 22)
-{
-    ke_port = port;
-}
-
-void Gyroscope::setPath(QString path = QString("/dev/input/event2") )
-{
-    ke_path = path;
-    // "/dev/input/event2"
-}
-
-float Gyroscope::getTiltX()
-{
-    return (float) m_tiltX;
-}
-
-float Gyroscope::getTiltY()
-{
-    return (float) m_tiltY;
-}
-
-float Gyroscope::getTiltZ()
-{
-    return (float) m_tiltZ;
-}
-
 void Gyroscope::readGyroEvent()
 {
+    quint32 checks = 1000;
+    count++;
+    count %= checks;
+    if(count == 0)
+    {
+        qDebug() << "Time is:\t" << begin->elapsed() << "\nChecks made:\t" << checks;
+        begin->start();
+    }
+
     struct input_event event;
 
     if (read(ke_gyroFd, reinterpret_cast<char*>(&event), sizeof(event)) != sizeof(event))
@@ -85,10 +75,10 @@ void Gyroscope::readGyroEvent()
                            static_cast<int>(m_tiltX),
                            static_cast<int>(m_tiltY),
                            static_cast<int>(m_tiltZ));*/
-        fullMessage.sprintf("VALUE: %g\t%g\t%g\r\n", m_tiltX, m_tiltY, m_tiltZ );
+//        fullMessage.sprintf("VALUE: %g\t%g\t%g\r\n", m_tiltX, m_tiltY, m_tiltZ );
         break;
     case EV_SYN:
-        qDebug() << fullMessage;
+//        qDebug() << fullMessage;
         break;
     }
 }

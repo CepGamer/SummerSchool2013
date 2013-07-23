@@ -6,15 +6,16 @@
 #include <QDebug>
 #include <QTimer>
 #include <QString>
+#include <qmath.h>
 
 #include <stdio.h>
 
 enum connectionMode {API, I2C};
 enum runMode {NEUTRAL = 0, FORW = 1, BACKW = 2, BLOCK = 3};
 
-const float Pi = 3.1415926535;  //  Needed for some calc's
-const float nsInMs = 1000000.0;
-const float msecsInPerc = 0.2;
+const qreal Pi = 3.1415926535;  //  Needed for some calc's
+const qreal nsInMs = 1000000.0;
+const qreal msecsInPerc = 0.2;
 const int zeroPoint = 1505000;
 const int amplitude = 200000;
 
@@ -25,9 +26,9 @@ public:
     explicit wheel(int wheelNumber, connectionMode cMode = API, QObject *parent = 0);
     ~wheel ();                  //  Destroys the wheel
     void stop();                //  Stops
-    void spin(float nspeed);    //  Spin continiously
-    void spin(float nspeed, float msecs);   //  Spin during some time
-    float getSpeed();
+    void spin(qreal nspeed);    //  Spin continiously
+    void spin(qreal nspeed, qreal msecs);   //  Spin during some time
+    inline qreal getSpeed(){return speed;}
 
 private:
     //  Serie of files that controls the drives through API
@@ -43,7 +44,7 @@ private:
     //  Independent values
     QTimer * stopTimer;     //  Stopping timer
     int wheelNum;           //  Wheel number
-    float speed;            //  Wheel speed (in percents)
+    qreal speed;            //  Wheel speed (in percents)
     connectionMode cMode;   //  Connection mode
     runMode rMode;          //  Running mode
 
@@ -51,7 +52,7 @@ private:
 //    void spinBackw(float speed);
 //    void spinForw(float speed, float msecs);
 //    void spinBackw(float speed, float msecs);
-    inline int setDutyNs(float speed);
+    inline int setDutyNs(int nspeed){return zeroPoint + (nspeed * amplitude) / 100;} //  Convert percents into nsecs
 
 signals:
 

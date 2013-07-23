@@ -80,7 +80,7 @@ void wheel::stop()
     case I2C:
         message->clear();
         message->append("i2cset -y 2 0x48 0x0 0x");
-        message->append(QString::number((((int) speed ) << 8 ) + (wheelNum << 2) + rMode, 16)); //  Number, Base
+        message->append(QString::number((abs((qRound(speed))) << 8) + (wheelNum << 2) + rMode, 16)); //  Number, Base
         message->append(" w");
         qDebug() << message;
         system(message->toStdString().data());
@@ -88,7 +88,7 @@ void wheel::stop()
     }
 }
 
-/*void wheel::spinForw(float speed)
+/*void wheel::spinForw(qreal speed)
 {
     if (speed > 100 || speed < -100)
     {
@@ -101,7 +101,7 @@ void wheel::stop()
 
 }
 
-void wheel::spinForw(float speed, float msecs)
+void wheel::spinForw(qreal speed, qreal msecs)
 {
     printf ("Spinning engine...\n");
     if (speed > 100 || speed < 0)
@@ -129,7 +129,7 @@ void wheel::spinForw(float speed, float msecs)
 //    stopTimer->singleShot((int) msecs, this, SLOT(stopSlot()));
 }*/
 
-/*void wheel::spinBackw(float speed, float msecs)
+/*void wheel::spinBackw(qreal speed, qreal msecs)
 {
 
     duty_ns->write(QString::number(setDutyNs (speed)).toStdString().data());  //  Setting speed
@@ -140,7 +140,7 @@ void wheel::spinForw(float speed, float msecs)
     //  Here'll be better func than spinForw and I'll rewrite it into upper one
 }
 
-void wheel::spinBackw(float speed)
+void wheel::spinBackw(qreal speed)
 {
     duty_ns->write(QString::number(setDutyNs (speed)).toStdString().data());
     run->write("1");
@@ -148,7 +148,7 @@ void wheel::spinBackw(float speed)
     run->flush();
 }*/
 
-void wheel::spin(float nspeed)
+void wheel::spin(qreal nspeed)
 {
     speed = nspeed;
     if (speed > 100 || speed < -100)
@@ -160,24 +160,33 @@ void wheel::spin(float nspeed)
     switch(cMode)
     {
     case API:
-        duty_ns->write(QString::number(setDutyNs (speed)).toStdString().data());
+        duty_ns->write(QString::number(setDutyNs ((int) speed)).toStdString().data());
         run->write("1");
         duty_ns->flush();
         run->flush();
         break;
     case I2C:
+        /*
         message->clear();
         message->append("i2cset -y 2 0x48 0x0 0x");
-        message->append(QString::number((((int) speed * (speed > 0 ? 1 : -1) ) << 8 )\
-                                                        + (wheelNum << 2) + rMode, 16));
+        message->append(QString::number(((abs((qRound(speed)))) << 8 ) + (wheelNum << 2) + rMode, 16));
         message->append(" w");
         qDebug() << message->toStdString().data();
-        system(message->toStdString().data());
+        system(message->toStdString().data());*/
+        char Data[10];
+        char output[90] =  "i2cset -y 2 0x48 0x0 0x";
+
+        sprintf(Data,"%x", ((abs(qRound(speed))) << 8 ) + (wheelNum << 2) + rMode);
+
+        strcat(output,Data);
+        strcat(output," w");
+//        qDebug() << "Wheel #" << wheelNum << " speed is " << qRound(speed);
+        system(output);
         break;
     }
 }
 
-void wheel::spin(float nspeed, float msecs)
+void wheel::spin(qreal nspeed, qreal msecs)
 {
     speed = nspeed;
     if (speed > 100 || speed < -100)
@@ -190,7 +199,7 @@ void wheel::spin(float nspeed, float msecs)
     switch(cMode)
     {
     case API:
-        if(duty_ns->write(QString::number((setDutyNs (speed))).toStdString().data()) == -1)
+        if(duty_ns->write(QString::number((setDutyNs ((int) speed))).toStdString().data()) == -1)
         {
             qDebug() << "Nothing written to duty_ns";
         }
@@ -204,8 +213,7 @@ void wheel::spin(float nspeed, float msecs)
     case I2C:
         message->clear();
         message->append("i2cset -y 2 0x48 0x0 0x");
-        message->append(QString::number((((int) speed * (speed > 0 ? 1 : -1) ) << 8 )\
-                                                        + (wheelNum << 2) + rMode, 16));
+        message->append(QString::number(((abs((qRound(speed)))) << 8 ) + (wheelNum << 2) + rMode, 16));
         message->append(" w");
         system(message->toStdString().data());
         break;
@@ -217,15 +225,10 @@ void wheel::spin(float nspeed, float msecs)
     stopTimer->start((int) msecs);
 }
 
-float wheel::getSpeed()
+/*qreal wheel::getSpeed()
 {
     return speed;
-}
-
-int wheel::setDutyNs(float speed)
-{
-    return zeroPoint + (speed * amplitude) / 100; //  Convert percents into nsecs
-}
+}*/
 
 void wheel::stopSlot()
 {

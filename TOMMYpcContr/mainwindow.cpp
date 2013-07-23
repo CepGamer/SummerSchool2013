@@ -36,13 +36,14 @@ void MainWindow::mousePressEvent(QMouseEvent *event)
     if(rad > 62500)
         return ;
     QByteArray * toSend = new QByteArray ();
-    toSend->append(QString::number(event->pos().x()));
+    toSend->append(QString::number(event->pos().x() - 250));
     toSend->append(' ');
-    toSend->append(QString::number(event->pos().y()));
+    toSend->append(QString::number(event->pos().y() - 250));
     toSend->append(' ');
     toSend->append(QString::number(rad));
     qDebug() << toSend->constData();
     sender->write(*toSend);
+    delete toSend;
 }
 
 void MainWindow::mouseMoveEvent(QMouseEvent *event)
@@ -52,13 +53,22 @@ void MainWindow::mouseMoveEvent(QMouseEvent *event)
     if (rad > 62500)
         return ;
     QByteArray * toSend = new QByteArray ();
-    toSend->append(QString::number(event->pos().x()));
+    toSend->append(QString::number(event->pos().x() - 250));
     toSend->append(' ');
-    toSend->append(QString::number(event->pos().y()));
+    toSend->append(QString::number(event->pos().y() - 250));
     toSend->append(' ');
     toSend->append(QString::number(rad));
     qDebug() << toSend->constData();
     sender->write(*toSend);
+    delete toSend;
+}
+
+void MainWindow::mouseReleaseEvent(QMouseEvent *)
+{
+    QByteArray * toSend = new QByteArray();
+    toSend->append("0 0 0");
+    sender->write(*toSend);
+    delete toSend;
 }
 
 void MainWindow::paintEvent(QPaintEvent *event)
