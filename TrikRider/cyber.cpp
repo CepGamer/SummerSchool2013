@@ -11,11 +11,11 @@ Cyber::Cyber(connectionMode cMode, QObject *parent) :
 
     guide[0].x = cos(-Pi / 2);
     guide[0].y = sin(-Pi / 2);
-    wheels->append( new wheel (0, cMode));      //  First wheel
+    wheels->append( new wheel (1, cMode));      //  First wheel
 
     guide[1].x = cos(2 * Pi / 3 - Pi / 2);
     guide[1].y = sin(2 * Pi / 3 - Pi / 2);
-    wheels->append( new wheel (1, cMode));     //  Second
+    wheels->append( new wheel (3, cMode));     //  Second
 
     guide[2].x = cos(4 * Pi / 3 - Pi / 2);
     guide[2].y = sin(4 * Pi / 3 - Pi / 2);

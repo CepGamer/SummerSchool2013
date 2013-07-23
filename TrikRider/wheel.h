@@ -6,6 +6,7 @@
 #include <QDebug>
 #include <QTimer>
 #include <QString>
+#include <qmath.h>
 
 #include <stdio.h>
 
@@ -27,7 +28,7 @@ public:
     void stop();                //  Stops
     void spin(float nspeed);    //  Spin continiously
     void spin(float nspeed, float msecs);   //  Spin during some time
-    float getSpeed();
+    inline float getSpeed(){return speed;}
 
 private:
     //  Serie of files that controls the drives through API
