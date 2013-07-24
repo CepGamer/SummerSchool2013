@@ -28,6 +28,7 @@ Cyber::Cyber(connectionMode cMode, QObject *parent) :
 
     mainTimer = new QTimer(this);
     count = 0;
+    calibrate();
 }
 
 vector operator *(matrix a, vector b)
@@ -133,13 +134,13 @@ void Cyber::firstLaunch()
 {
     direction.x = direction.y = position.x = position.y = 0;
 //    gyro->setConnection();
-    angles.m_tiltX = gyro->getTiltX();
+/*    angles.m_tiltX = gyro->getTiltX();
     angles.m_tiltY = gyro->getTiltY();
     angles.m_tiltZ = gyro->getTiltZ();
-    //    QTimer::singleShot(10000, this, SLOT());
+    QTimer::singleShot(10000, this, SLOT());*/
     //  Set calibration
-    integrand = 0;
-    connect(mainTimer, SIGNAL(timeout()), this, SLOT(calibrateSlot()));
+    integrand = count = 0;
+    connect(mainTimer, SIGNAL(timeout()), this, SLOT(firstLaunchSlot()));
     mainTimer->start(1000 / checksPerSecond);
 }
 
@@ -199,10 +200,11 @@ void Cyber::checkPosition()
              << "Dir is:\t" << direction.x << '\t' << direction.y;
     position = position + ( (kalmanCoef / (checksPerSecond * checksPerSecond * 2)) * acceleration \
                             + ((1 - kalmanCoef) / checksPerSecond) * (moving));*/
-    direction = direction + (kalmanCoef / checksPerSecond) * (setAngle( angles.m_tiltZ ) * direction) + \
+    direction = direction + \
+            (kalmanCoef / checksPerSecond) * (setAngle( angles.m_tiltZ - correction ) * direction) + \
             ((1 - kalmanCoef) / checksPerSecond ) * (on50percentSpeed + direction);
     //  Change direction
-    absolute.m_tiltZ = kalmanCoef * angles.m_tiltZ + (1 - kalmanCoef) * angVelocityC;
+    absolute.m_tiltZ = kalmanCoef * (angles.m_tiltZ - correction) + (1 - kalmanCoef) * angVelocityC;
     //  Kalmsn-filter angular speed
 }
 
@@ -243,16 +245,17 @@ void Cyber::turnRightSlot()
 void Cyber::calibrateSlot()
 {
     count++;
-    if (count == 10 * checksPerSecond)
+    if (count == (20 * checksPerSecond))
     {
         mainTimer->stop();
         disconnect(mainTimer, SIGNAL(timeout()), this, SLOT(calibrateSlot()));
-        correction = integrand / (10 * checksPerSecond);
+        correction = integrand / (20 * checksPerSecond);
         integrand = 0;
         qDebug() << "Correction is:\t" << correction;
+        firstLaunch();
     }
     checkPosition();
-    integrand += angles.m_tiltZ / checksPerSecond;
+    integrand += angles.m_tiltZ;
 }
 
 void Cyber::firstLaunchSlot()
@@ -262,5 +265,5 @@ void Cyber::firstLaunchSlot()
     if(count == 0)
         qDebug() << "Integrand is:\t" << QString::number(integrand, 'f');
     checkPosition();
-    integrand += angles.m_tiltZ / checksPerSecond;
+    integrand += absolute.m_tiltZ / checksPerSecond;
 }

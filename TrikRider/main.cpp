@@ -27,6 +27,7 @@ int main (int argc, char ** argv)
         else if(strcmp("pc", argv[1]) == 0)
             type = PC_CONTROL;
     }
+
 /*    switch (type) {
     case ANDROID_CONTROL:
 
@@ -108,7 +109,7 @@ int main (int argc, char ** argv)
                 b->turn(360);
                 break;*/
             case 600:
-                b->firstLaunch();
+//                b->firstLaunch();
                 break;
             default:
 /*                qDebug() << "Degree is:\t" << qRound(x);

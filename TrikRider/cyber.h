@@ -13,7 +13,7 @@
 
 const qreal degPerSecMCoef = 1;
 const quint16 checksPerSecond = 50;
-const qreal kalmanCoef = 0.8;
+const qreal kalmanCoef = 1;
 const qreal angVelocity = 4.487989339;
 
 //  Garbage struct accel

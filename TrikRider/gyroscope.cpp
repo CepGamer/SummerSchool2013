@@ -51,7 +51,7 @@ void Gyroscope::readGyroEvent()
     count %= checks;
     if(count == 0)
     {
-        qDebug() << "Time is:\t" << begin->elapsed() << "\nChecks made:\t" << checks;
+//        qDebug() << "Time is:\t" << begin->elapsed() << "\nChecks made:\t" << checks;
         begin->start();
     }
 
