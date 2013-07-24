@@ -26,9 +26,15 @@ public:
     explicit wheel(int wheelNumber, connectionMode cMode = API, QObject *parent = 0);
     ~wheel ();                  //  Destroys the wheel
     void stop();                //  Stops
+<<<<<<< HEAD
     void spin(qreal nspeed);    //  Spin continiously
     void spin(qreal nspeed, qreal msecs);   //  Spin during some time
     inline qreal getSpeed(){return speed;}
+=======
+    void spin(float nspeed);    //  Spin continiously
+    void spin(float nspeed, float msecs);   //  Spin during some time
+    inline float getSpeed(){return speed;}
+>>>>>>> 10b39b19c0c40f9d05f04a2a82ae723c337d0b32
 
 private:
     //  Serie of files that controls the drives through API
