@@ -108,7 +108,7 @@ int main (int argc, char ** argv)
                 b->turn(360);
                 break;*/
             case 600:
-                b->calibrate();
+                b->firstLaunch();
                 break;
             default:
 /*                qDebug() << "Degree is:\t" << qRound(x);

@@ -26,7 +26,7 @@ Cyber::Cyber(connectionMode cMode, QObject *parent) :
             direction.x = direction.y = \
             acceleration.x = acceleration.y = 0;
 
-    checkTimer = new QTimer(this);
+    mainTimer = new QTimer(this);
     count = 0;
 }
 
@@ -46,11 +46,6 @@ vector operator*(qreal a, vector b)
     return toRet;
 }
 
-vector operator*(vector a, qreal b)
-{
-    return b * a;
-}
-
 vector operator +(vector a, vector b)
 {
     vector toRet;   //  Summing vectors
@@ -65,10 +60,6 @@ vector operator +(vector a, vector b)
     a.y = b.y;
 }
 */
-qreal operator*(vector a, vector b)
-{
-    return a.x * b.x + a.y * b.y;   //  Scalar multiplying
-}
 
 vector normalize(vector a)
 {
@@ -104,7 +95,7 @@ Cyber::~Cyber()
     delete wheels->at(1);
     delete wheels->at(2);
 
-    delete checkTimer;
+    delete mainTimer;
     delete wheels;
     delete guide;
     delete gyro;
@@ -138,30 +129,7 @@ void Cyber::moveByVector(qreal speed, vector toMove)
     //  Will add code when the gyro & accel ready
 }
 
-void Cyber::turnLeft(qreal degree)
-{
-    qDebug() << "Start engines";
-/*    wheels->at(0)->spin(100);   //  spinning dem wheels
-    wheels->at(1)->spin(100);
-    wheels->at(2)->spin(100);*/
-    leftRad = degree / 180 * Pi;
-    //  Again, some code after gyro
-    connect(checkTimer, SIGNAL(timeout()), this, SLOT(turnLeftSlot()));
-    checkTimer->start(1000 / checksPerSecond);
-}
-
-void Cyber::turnRight(qreal degree)
-{
-    qDebug() << "Start engines";
-    /*wheels->at(0)->spin(-100);
-    wheels->at(1)->spin(-100);
-    wheels->at(2)->spin(-100);*/
-    leftRad = degree / 180 * Pi;
-    connect(checkTimer, SIGNAL(timeout()), this, SLOT(turnRightSlot()));
-    checkTimer->start(1000 / checksPerSecond);
-}
-
-void Cyber::calibrate()
+void Cyber::firstLaunch()
 {
     direction.x = direction.y = position.x = position.y = 0;
 //    gyro->setConnection();
@@ -171,14 +139,44 @@ void Cyber::calibrate()
     //    QTimer::singleShot(10000, this, SLOT());
     //  Set calibration
     integrand = 0;
-    connect(checkTimer, SIGNAL(timeout()), this, SLOT(calibrateSlot()));
-    checkTimer->start(1000 / checksPerSecond);
+    connect(mainTimer, SIGNAL(timeout()), this, SLOT(calibrateSlot()));
+    mainTimer->start(1000 / checksPerSecond);
+}
+
+void Cyber::turnLeft(qreal degree)
+{
+    qDebug() << "Start engines";
+/*    wheels->at(0)->spin(100);   //  spinning dem wheels
+    wheels->at(1)->spin(100);
+    wheels->at(2)->spin(100);*/
+    leftRad = degree / 180 * Pi;
+    //  Again, some code after gyro
+    connect(mainTimer, SIGNAL(timeout()), this, SLOT(turnLeftSlot()));
+    mainTimer->start(1000 / checksPerSecond);
+}
+
+void Cyber::turnRight(qreal degree)
+{
+    qDebug() << "Start engines";
+    /*wheels->at(0)->spin(-100);
+    wheels->at(1)->spin(-100);
+    wheels->at(2)->spin(-100);*/
+    leftRad = degree / 180 * Pi;
+    connect(mainTimer, SIGNAL(timeout()), this, SLOT(turnRightSlot()));
+    mainTimer->start(1000 / checksPerSecond);
+}
+
+void Cyber::calibrate()
+{
+    count = correction = integrand = 0;
+    connect(mainTimer, SIGNAL(timeout()), this, SLOT(calibrateSlot()));
+    mainTimer->start(1000 / checksPerSecond);
 }
 
 void Cyber::checkPosition()
 {
     vector moving;
-    qreal angVelocityC = angVelocity / ((wheels->at(1)->getSpeed() > 75) ? 2 : 1);
+    qreal angVelocityC = angVelocity / ((wheels->at(1)->getSpeed() > 75) ? 2 : 1);  //  Get speed - divide speed in 2 types
     vector on50percentSpeed;
     currRad += angVelocityC / checksPerSecond;
 //    currRad = currRad % (2 * Pi);
@@ -202,16 +200,18 @@ void Cyber::checkPosition()
     position = position + ( (kalmanCoef / (checksPerSecond * checksPerSecond * 2)) * acceleration \
                             + ((1 - kalmanCoef) / checksPerSecond) * (moving));*/
     direction = direction + (kalmanCoef / checksPerSecond) * (setAngle( angles.m_tiltZ ) * direction) + \
-            ((1 - kalmanCoef) / checksPerSecond ) * on50percentSpeed;
+            ((1 - kalmanCoef) / checksPerSecond ) * (on50percentSpeed + direction);
+    //  Change direction
     absolute.m_tiltZ = kalmanCoef * angles.m_tiltZ + (1 - kalmanCoef) * angVelocityC;
+    //  Kalmsn-filter angular speed
 }
 
 void Cyber::turnLeftSlot()
 {
     if(leftRad < 0.2)
     {
-        checkTimer->stop();
-        checkTimer->disconnect(checkTimer, SIGNAL(timeout()), this, SLOT(turnLeftSlot()));
+        mainTimer->stop();
+        mainTimer->disconnect(mainTimer, SIGNAL(timeout()), this, SLOT(turnLeftSlot()));
         stop();
     }
     else if(leftRad < 2 * Pi)
@@ -229,8 +229,8 @@ void Cyber::turnRightSlot()
         qDebug() << "leftRad is:\t" << QString::number(leftRad, 'f');
     if(leftRad < 0.2)
     {
-        checkTimer->stop();
-        checkTimer->disconnect(checkTimer, SIGNAL(timeout()), this, SLOT(turnRightSlot()));
+        mainTimer->stop();
+        disconnect(mainTimer, SIGNAL(timeout()), this, SLOT(turnRightSlot()));
         stop();
     }
     else if(leftRad < 2 * Pi)
@@ -241,6 +241,21 @@ void Cyber::turnRightSlot()
 }
 
 void Cyber::calibrateSlot()
+{
+    count++;
+    if (count == 10 * checksPerSecond)
+    {
+        mainTimer->stop();
+        disconnect(mainTimer, SIGNAL(timeout()), this, SLOT(calibrateSlot()));
+        correction = integrand / (10 * checksPerSecond);
+        integrand = 0;
+        qDebug() << "Correction is:\t" << correction;
+    }
+    checkPosition();
+    integrand += angles.m_tiltZ / checksPerSecond;
+}
+
+void Cyber::firstLaunchSlot()
 {
     count++;
     count %= checksPerSecond;

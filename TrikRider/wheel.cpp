@@ -80,11 +80,7 @@ void wheel::stop()
     case I2C:
         message->clear();
         message->append("i2cset -y 2 0x48 0x0 0x");
-<<<<<<< HEAD
         message->append(QString::number((abs((qRound(speed))) << 8) + (wheelNum << 2) + rMode, 16)); //  Number, Base
-=======
-        message->append(QString::number((abs((qRound(speed)))) + (wheelNum << 2) + rMode, 16)); //  Number, Base
->>>>>>> 10b39b19c0c40f9d05f04a2a82ae723c337d0b32
         message->append(" w");
         qDebug() << message;
         system(message->toStdString().data());
@@ -228,23 +224,6 @@ void wheel::spin(qreal nspeed, qreal msecs)
 //    stopTimer->singleShot((int) msecs, this, SLOT(stopSlot()));
     stopTimer->start((int) msecs);
 }
-
-<<<<<<< HEAD
-/*qreal wheel::getSpeed()
-{
-    return speed;
-}*/
-=======
-/*float wheel::getSpeed()
-{
-    return speed;
-}*/
-
-int wheel::setDutyNs(float speed)
-{
-    return zeroPoint + (speed * amplitude) / 100; //  Convert percents into nsecs
-}
->>>>>>> 10b39b19c0c40f9d05f04a2a82ae723c337d0b32
 
 void wheel::stopSlot()
 {

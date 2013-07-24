@@ -39,10 +39,10 @@ struct matrix
 
 vector operator*(matrix a, vector b);
 vector operator*(qreal a, vector b);
-inline vector operator*(vector a, qreal b);
+inline vector operator*(vector a, qreal b) {return b * a;}
 vector operator+(vector a, vector b);
 //void operator=(vector a, vector b);
-inline qreal operator*(vector a, vector b);
+inline qreal operator*(vector a, vector b) {return a.x * b.x + a.y * b.y;}
 vector normalize (vector a);
 matrix setAngle(qreal radAngle);
 vector setVAngle(qreal radAngle);
@@ -57,7 +57,7 @@ public:
     //  We allow turning for more than 360 degree (that's may be bad because of qreal precision)
     void stop();
     void moveByVector (qreal speed, vector toMove);  //  Main moving func
-    void calibrate ();              //  Calibrating function
+    void firstLaunch();
 
 private:
     QList<wheel *> * wheels;        //  Wheels.
@@ -68,10 +68,11 @@ private:
     vector acceleration;            //  Absolute acceleration
     qreal currRad;                  //  Current angle in radians
     qreal leftRad;                  //  Left radians to turn
-    qreal integrand;
+    qreal integrand;                //  Summary angle of Z tilt (tilt * time)
+    qreal correction;               //  Correction coefficient (in radians)
     quint16 count;
 
-    QTimer * checkTimer;            //  Check position timer
+    QTimer * mainTimer;            //  Check position timer
 
     Gyroscope * gyro;
 
@@ -79,6 +80,7 @@ private:
     gyro_pos absolute;              //  Filtered gyro pos (x axis is forward, z axis is -g)
     void turnLeft (qreal degree);   //  Precise turns
     void turnRight (qreal degree);
+    void calibrate();               //  Calibrating function
 
 signals:
     
@@ -89,6 +91,7 @@ private slots:
     void turnLeftSlot();
     void turnRightSlot();
     void calibrateSlot();
+    void firstLaunchSlot();
 
 };
 
