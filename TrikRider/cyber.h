@@ -56,7 +56,7 @@ public:
     void turn (qreal degree);   //  NOTE:
     //  We allow turning for more than 360 degree (that's may be bad because of qreal precision)
     void stop();
-    void moveByVector (qreal speed, vector toMove);  //  Main moving func
+    void moveByVector (vector toMove);  //  Main moving func
     void firstLaunch();
 
 private:
@@ -65,7 +65,8 @@ private:
     vector * guide;
     vector position;                //  Absolute position in the world
     vector direction;               //  Absolute direction
-    vector acceleration;            //  Absolute acceleration
+    vector moving;
+//    vector acceleration;            //  Absolute acceleration
     qreal currRad;                  //  Current angle in radians
     qreal leftRad;                  //  Left radians to turn
     qreal integrand;                //  Summary angle of Z tilt (tilt * time)
@@ -88,6 +89,7 @@ public slots:
 
 private slots:
     void checkPosition();
+    void moveVectorSlot();
     void turnLeftSlot();
     void turnRightSlot();
     void calibrateSlot();
