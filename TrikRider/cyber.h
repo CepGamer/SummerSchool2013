@@ -40,7 +40,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <cmath>
 
 const qreal degPerSecMCoef = 1;
-const quint16 checksPerSecond = 50;
+const quint16 checksPerSecond = 10;
 const qreal kalmanCoef = 1;
 const qreal angVelocity = 4.487989339;
 

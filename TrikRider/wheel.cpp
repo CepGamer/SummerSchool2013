@@ -34,6 +34,11 @@ wheel::wheel(int wheelNumber, connectionMode mod, QObject *parent) :
     cMode = mod;
     switch (cMode) {
     case API:
+	//	DEBUG!!!
+	if(wheelNumber == 2)
+		path = new QString("/sys/class/pwm/ehrpwm.1:1/");
+	else
+	//	END DEBUG
         path = new QString ("/sys/class/pwm/ecap." + QString::number(wheelNum) + "/");    //  Get full path to engines
         request = new QFile (*path + QString("request"));
         if(!request->open(QFile::WriteOnly))
@@ -107,7 +112,7 @@ void wheel::stop()
     case I2C:
         message->clear();
         message->append("i2cset -y 2 0x48 0x0 0x");
-        message->append(QString::number((abs((qRound(speed))) << 8) + (wheelNum << 2) + rMode, 16)); //  Number, Base
+        message->append(QString::number((abs((roundSpeed())) << 8) + (wheelNum << 2) + rMode, 16)); //  Number, Base
         message->append(" w");
         qDebug() << message;
         system(message->toStdString().data());
@@ -203,7 +208,7 @@ void wheel::spin(qreal nspeed)
         char Data[10];
         char output[90] =  "i2cset -y 2 0x48 0x0 0x";
 
-        sprintf(Data,"%x", ((abs(qRound(speed))) << 8 ) + (wheelNum << 2) + rMode);
+        sprintf(Data,"%x", ((abs(roundSpeed())) << 8 ) + (wheelNum << 2) + rMode);
 
         strcat(output,Data);
         strcat(output," w");
@@ -234,13 +239,13 @@ void wheel::spin(qreal nspeed, qreal msecs)
         {
             qDebug () << "Nothing is written to run";
         }
-        duty_ns->flush();
+          duty_ns->flush();
         run->flush();
         break;
     case I2C:
         message->clear();
         message->append("i2cset -y 2 0x48 0x0 0x");
-        message->append(QString::number(((abs((qRound(speed)))) << 8 ) + (wheelNum << 2) + rMode, 16));
+        message->append(QString::number(((abs((roundSpeed()))) << 8 ) + (wheelNum << 2) + rMode, 16));
         message->append(" w");
         system(message->toStdString().data());
         break;
@@ -250,6 +255,16 @@ void wheel::spin(qreal nspeed, qreal msecs)
 //    QTimer::singleShot((int) msecs * 1000, this, SLOT(stopSlot()));
 //    stopTimer->singleShot((int) msecs, this, SLOT(stopSlot()));
     stopTimer->start((int) msecs);
+}
+
+quint16 wheel::roundSpeed()
+{
+    speed /= 10;
+    speed = qRound(speed);
+    speed *= 10;
+    if(speed == 0)
+	rMode = NEUTRAL;
+    return speed;
 }
 
 void wheel::stopSlot()

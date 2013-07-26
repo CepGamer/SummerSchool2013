@@ -43,7 +43,7 @@ int main (int argc, char ** argv)
     qreal x;
     progtype type = OTHER;
 //    int toRet;
-    Cyber * b = new Cyber(I2C);
+    Cyber * b = new Cyber(API);
     qDebug() << "Engines is going to run";
     if (argc == 2)
     {

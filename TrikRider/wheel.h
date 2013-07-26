@@ -70,7 +70,7 @@ private:
 
     //  Independent values
     QTimer * stopTimer;     //  Stopping timer
-    int wheelNum;           //  Wheel number
+    quint8 wheelNum;        //  Wheel number
     qreal speed;            //  Wheel speed (in percents)
     connectionMode cMode;   //  Connection mode
     runMode rMode;          //  Running mode
@@ -80,7 +80,7 @@ private:
 //    void spinForw(float speed, float msecs);
 //    void spinBackw(float speed, float msecs);
     inline int setDutyNs(int nspeed){return zeroPoint + (nspeed * amplitude) / 100;} //  Convert percents into nsecs
-
+    quint16 roundSpeed();   //  Round speed to degree of 10
 signals:
 
 public slots:

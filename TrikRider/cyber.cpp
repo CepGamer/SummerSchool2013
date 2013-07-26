@@ -41,11 +41,11 @@ Cyber::Cyber(connectionMode cMode, QObject *parent) :
 
     guide[0].x = cos(-Pi / 2);
     guide[0].y = sin(-Pi / 2);
-    wheels->append( new wheel (1, cMode));      //  First wheel
+    wheels->append( new wheel (0, cMode));      //  First wheel
 
     guide[1].x = cos(2 * Pi / 3 - Pi / 2);
     guide[1].y = sin(2 * Pi / 3 - Pi / 2);
-    wheels->append( new wheel (3, cMode));      //  Second
+    wheels->append( new wheel (1, cMode));      //  Second
 
     guide[2].x = cos(4 * Pi / 3 - Pi / 2);
     guide[2].y = sin(4 * Pi / 3 - Pi / 2);
@@ -154,6 +154,8 @@ void Cyber::moveByVector(vector toMove)
     wheels->at(1)->spin((moving * guide[1]) * 50);
     wheels->at(2)->spin((moving * guide[2]) * 50);
     //  Will add code when the gyro & accel ready
+    connect(mainTimer, SIGNAL(timeout()), this, SLOT(moveVectorSlot()));
+    mainTimer->start(1000 / checksPerSecond);
 }
 
 void Cyber::firstLaunch()
@@ -173,7 +175,7 @@ void Cyber::firstLaunch()
 
 void Cyber::turnLeft(qreal degree)
 {
-    qDebug() << "Start engines";
+    //qDebug() << "Start engines";
 /*    wheels->at(0)->spin(100);   //  spinning dem wheels
     wheels->at(1)->spin(100);
     wheels->at(2)->spin(100);*/
@@ -185,7 +187,7 @@ void Cyber::turnLeft(qreal degree)
 
 void Cyber::turnRight(qreal degree)
 {
-    qDebug() << "Start engines";
+    //qDebug() << "Start engines";
     /*wheels->at(0)->spin(-100);
     wheels->at(1)->spin(-100);
     wheels->at(2)->spin(-100);*/
@@ -196,7 +198,7 @@ void Cyber::turnRight(qreal degree)
 
 void Cyber::calibrate()
 {
-    qDebug () < "Sensor Calibration Initiated";
+    qDebug () << "Sensor Calibration Initiated";
     count = correction = integrand = 0; //  Tune the calibration
     connect(mainTimer, SIGNAL(timeout()), this, SLOT(calibrateSlot()));
     mainTimer->start(1000 / checksPerSecond);
@@ -236,12 +238,20 @@ void Cyber::checkPosition()
 
 void Cyber::moveVectorSlot()
 {
-    checkPosition();
-    moving = setAngle(-currRad) * moving;                //  Calibrate moving vector
+    count++;
+    count %= checksPerSecond;
 
-    wheels->at(0)->spin((moving * guide[0]) * 50);      //  Get those wheels spinning
-    wheels->at(1)->spin((moving * guide[1]) * 50);
-    wheels->at(2)->spin((moving * guide[2]) * 50);
+    checkPosition();
+//    moving = normalize(setAngle(-currRad) * moving);     //  Calibrate moving vector
+
+    if(count == 0)
+    {
+    	wheels->at(0)->spin((normalize(setAngle(-currRad) * moving) * guide[0]) * 80);      //  Get those wheels spinning
+    	wheels->at(1)->spin((normalize(setAngle(-currRad) * moving) * guide[1]) * 80);
+    	wheels->at(2)->spin((normalize(setAngle(-currRad) * moving) * guide[2]) * 80);
+        qDebug() << "CurrRad is:\t" << currRad << "\nSpeed1 is:\t" << wheels->at(0)->getSpeed() \ 
+	         << "\nSpeed2 is:\t" << wheels->at(1)->getSpeed() << "\n3 is:\t" << wheels->at(2)->getSpeed();
+    }
 }
 
 void Cyber::turnLeftSlot()
@@ -287,8 +297,10 @@ void Cyber::calibrateSlot()
         disconnect(mainTimer, SIGNAL(timeout()), this, SLOT(calibrateSlot()));
         correction = integrand / (20 * checksPerSecond);
         integrand = 0;
-        qDebug () < "Calibration is over, we are ready to roll!\nCorrection is:\t" << correction;
-        firstLaunch();
+        qDebug () << "Calibration is over, we are ready to roll!\nCorrection is:\t" << correction;
+	moving.x = 1;
+	moving.y = 0;
+        moveByVector(moving);
     }
     checkPosition();
     integrand += angles.m_tiltZ;
