@@ -37,7 +37,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include <stdio.h>
 
-enum connectionMode {API, I2C};
+enum wheelType {SERV, DC};
 enum runMode {NEUTRAL = 0, FORW = 1, BACKW = 2, BLOCK = 3};
 
 const qreal Pi = 3.1415926535;  //  Needed for some calc's
@@ -50,7 +50,7 @@ class wheel : public QObject
 {
     Q_OBJECT
 public:
-    explicit wheel(int wheelNumber, connectionMode cMode = API, QObject *parent = 0);
+    explicit wheel(int wheelNumber, wheelType cMode = DC, QObject *parent = 0);
     ~wheel ();                  //  Destroys the wheel
     void stop();                //  Stops
     void spin(qreal nspeed);    //  Spin continiously
@@ -72,7 +72,7 @@ private:
     QTimer * stopTimer;     //  Stopping timer
     quint8 wheelNum;        //  Wheel number
     qreal speed;            //  Wheel speed (in percents)
-    connectionMode cMode;   //  Connection mode
+    wheelType cMode;   //  Connection mode
     runMode rMode;          //  Running mode
 
 //    void spinForw(float speed);     //  Precise spin

@@ -27,18 +27,13 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "wheel.h"
 
-wheel::wheel(int wheelNumber, connectionMode mod, QObject *parent) :
+wheel::wheel(int wheelNumber, wheelType mod, QObject *parent) :
     QObject(parent)
 {
     wheelNum = wheelNumber;
     cMode = mod;
     switch (cMode) {
-    case API:
-	//	DEBUG!!!
-	if(wheelNumber == 2)
-		path = new QString("/sys/class/pwm/ehrpwm.1:1/");
-	else
-	//	END DEBUG
+    case SERV:
         path = new QString ("/sys/class/pwm/ecap." + QString::number(wheelNum) + "/");    //  Get full path to engines
         request = new QFile (*path + QString("request"));
         if(!request->open(QFile::WriteOnly))
@@ -61,7 +56,7 @@ wheel::wheel(int wheelNumber, connectionMode mod, QObject *parent) :
         period_ns->flush();
         //  Well...
         break;
-    case I2C:
+    case DC:
         message = new QString();
         break;
     default:
@@ -75,7 +70,7 @@ wheel::wheel(int wheelNumber, connectionMode mod, QObject *parent) :
 wheel::~wheel()
 {
     switch (cMode) {
-    case API:
+    case SERV:
         run->write("0");
         //  Do we need to clean other files?
         run->close();
@@ -89,7 +84,7 @@ wheel::~wheel()
         delete period_ns;
         delete request;
         break;
-    case I2C:
+    case DC:
         delete message;
         break;
     }
@@ -101,7 +96,7 @@ void wheel::stop()
     qDebug() << "Stop engine";
     rMode = NEUTRAL;
     switch (cMode) {
-    case API:
+    case SERV:
         run->write("0");
         if(!run->flush())
         {
@@ -109,7 +104,7 @@ void wheel::stop()
         }
         request->write("0");
         break;
-    case I2C:
+    case DC:
         message->clear();
         message->append("i2cset -y 2 0x48 0x0 0x");
         message->append(QString::number((abs((roundSpeed())) << 8) + (wheelNum << 2) + rMode, 16)); //  Number, Base
@@ -191,29 +186,29 @@ void wheel::spin(qreal nspeed)
     rMode = (speed > 0) ? FORW : BACKW;
     switch(cMode)
     {
-    case API:
+    case SERV:
         duty_ns->write(QString::number(setDutyNs ((int) speed)).toStdString().data());
         run->write("1");
         duty_ns->flush();
         run->flush();
         break;
-    case I2C:
-        /*
+    case DC:
+
         message->clear();
         message->append("i2cset -y 2 0x48 0x0 0x");
-        message->append(QString::number(((abs((qRound(speed)))) << 8 ) + (wheelNum << 2) + rMode, 16));
+        message->append(QString::number(((abs(roundSpeed())) << 8 ) + (wheelNum << 2) + rMode, 16));
         message->append(" w");
-        qDebug() << message->toStdString().data();
-        system(message->toStdString().data());*/
-        char Data[10];
+        //qDebug() << message->toStdString().data();
+        system(message->toStdString().data());
+
+        /*char Data[10];
         char output[90] =  "i2cset -y 2 0x48 0x0 0x";
-
         sprintf(Data,"%x", ((abs(roundSpeed())) << 8 ) + (wheelNum << 2) + rMode);
-
         strcat(output,Data);
         strcat(output," w");
 //        qDebug() << "Wheel #" << wheelNum << " speed is " << qRound(speed);
-        system(output);
+        system(output);*/
+
         break;
     }
 }
@@ -230,7 +225,7 @@ void wheel::spin(qreal nspeed, qreal msecs)
     //  Debug printing
     switch(cMode)
     {
-    case API:
+    case SERV:
         if(duty_ns->write(QString::number((setDutyNs ((int) speed))).toStdString().data()) == -1)
         {
             qDebug() << "Nothing written to duty_ns";
@@ -242,7 +237,7 @@ void wheel::spin(qreal nspeed, qreal msecs)
           duty_ns->flush();
         run->flush();
         break;
-    case I2C:
+    case DC:
         message->clear();
         message->append("i2cset -y 2 0x48 0x0 0x");
         message->append(QString::number(((abs((roundSpeed()))) << 8 ) + (wheelNum << 2) + rMode, 16));

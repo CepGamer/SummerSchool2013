@@ -32,17 +32,27 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <QObject>
 #include <QSharedPointer>
 #include <QList>
-#include <QQuaternion>
+#include <QTcpServer>
+#include <QSocketNotifier>
+#include <QTcpSocket>
+#include <QSettings>    //  What is it?
+//#include <QQuaternion>
+//#include <QtSql/QSql>
 
 #include "wheel.h"
 #include "gyroscope.h"
 
 #include <cmath>
+#include <stdio.h>
 
-const qreal degPerSecMCoef = 1;
-const quint16 checksPerSecond = 10;
+const qreal degPerSecMCoef = 1;     //  Not used
+const quint16 checksPerSecond = 20; //  Было 10
 const qreal kalmanCoef = 1;
-const qreal angVelocity = 4.487989339;
+const qreal angVelocity = 4.487989339;  //  Unknown! Must be set up!
+
+enum controlType {ANDROID_CONTROL, AUTO_MODE, PC_CONTROL, OTHER};
+enum state {START, MOVING, PAUSED};
+//  Auto mode - some mythical type of controls. So as the Other one
 
 //  Garbage struct accel
 struct accelerometer
@@ -79,15 +89,17 @@ class Cyber : public QObject
 {
     Q_OBJECT
 public:
-    explicit Cyber(connectionMode cMode, QObject *parent = 0);
+    explicit Cyber(QObject *parent = 0);
     ~Cyber();
     void turn (qreal degree);   //  NOTE:
     //  We allow turning for more than 360 degree (that's may be bad because of qreal precision)
     void stop();
     void moveByVector (vector toMove);  //  Main moving func
-    void firstLaunch();
+//    void firstLaunch();
+    void startOMNI ();
 
 private:
+    QFile * settings;               //  Settings file
     QList<wheel *> * wheels;        //  Wheels.
 //    QList<vector *> * guide;        //  Guiding vector
     vector * guide;
@@ -99,17 +111,27 @@ private:
     qreal leftRad;                  //  Left radians to turn
     qreal integrand;                //  Summary angle of Z tilt (tilt * time)
     qreal correction;               //  Correction coefficient (in radians)
+    quint8 wheelSize;
     quint16 count;
+    controlType controlMode;        //  How device is controlled
+    wheelType wheelMode;            //  How wheels is connected
 
-    QTimer * mainTimer;            //  Check position timer
+    QTimer * mainTimer;             //  Check position timer
+    QTcpServer * conServer;
+    QTcpSocket * conSocket;
 
     Gyroscope * gyro;
 
-    gyro_pos angles;                //  Current gyro tilt
-    gyro_pos absolute;              //  Filtered gyro pos (x axis is forward, z axis is -g)
+    gyroPos previous;
+    gyroPos angles;                //  Current gyro tilt
+    gyroPos absolute;              //  Filtered gyro pos (x axis is forward, z axis is -g)
+
     void turnLeft (qreal degree);   //  Precise turns
     void turnRight (qreal degree);
     void calibrate();               //  Calibrating function
+    void loadFromSaved();           //  Load saved settings
+    void setSettings();
+    inline void setWheels();
 
 signals:
     
@@ -122,6 +144,8 @@ private slots:
     void turnRightSlot();
     void calibrateSlot();
     void firstLaunchSlot();
+    void movingState();
+    void pauseState();
 
 };
 

@@ -27,37 +27,19 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "cyber.h"
 
-Cyber::Cyber(connectionMode cMode, QObject *parent) :
+Cyber::Cyber(QObject *parent) :
     QObject(parent)
 {
-    wheels = new QList<wheel *>();
-//    guide = new QList<vector *>();
-    gyro = new Gyroscope(this);
-    guide = new vector[3];          //  Guiding vectors for all
+    settings = new QFile("settings");
 //    curr = new gyro_pos;
-    position.x = position.y = 0;
-
-    gyro->setConnection();          //  Start reading gyro
-
-    guide[0].x = cos(-Pi / 2);
-    guide[0].y = sin(-Pi / 2);
-    wheels->append( new wheel (0, cMode));      //  First wheel
-
-    guide[1].x = cos(2 * Pi / 3 - Pi / 2);
-    guide[1].y = sin(2 * Pi / 3 - Pi / 2);
-    wheels->append( new wheel (1, cMode));      //  Second
-
-    guide[2].x = cos(4 * Pi / 3 - Pi / 2);
-    guide[2].y = sin(4 * Pi / 3 - Pi / 2);
-    wheels->append( new wheel (2, cMode));      //  Third
-
+    gyro = new Gyroscope(this);
+    mainTimer = new QTimer(this);
+    wheels = new QList<wheel *>();
+    conServer = new QTcpServer ();
+    conSocket = new QTcpSocket ();
     position.x = position.y = \
             direction.x = direction.y = 0;      //  Resetting values
 //            acceleration.x = acceleration.y = 0;
-
-    mainTimer = new QTimer(this);
-    count = 0;
-    calibrate();                                //  Calibrating gyro (& accel, when ready (& if needed))
 }
 
 vector operator *(matrix a, vector b)
@@ -139,9 +121,26 @@ void Cyber::turn (qreal degree)
 
 void Cyber::stop()
 {
-    wheels->at(0)->stop();      //  Fullstop
-    wheels->at(1)->stop();
-    wheels->at(2)->stop();
+    for (int i = 0; i < wheelSize; i++)
+        wheels->at(i)->stop();      //  Fullstop
+}
+
+void Cyber::startOMNI()
+{
+    if(settings->exists())
+    {
+        char temp;
+        qDebug() << "Load previous settings? Y/N";
+        temp = getchar();
+        if(temp == 'y' || temp == 'Y')
+            loadFromSaved();
+        else if (temp != 'n' & temp != 'N')
+            qDebug() << "Please press either 'Y' or 'N'";
+        else setSettings();
+    } else setSettings();
+
+    gyro->setConnection();          //  Start reading gyro
+    calibrate();                    //  Calibrating gyro (& accel, when ready (& if needed))
 }
 
 void Cyber::moveByVector(vector toMove)
@@ -150,28 +149,23 @@ void Cyber::moveByVector(vector toMove)
     moving.x = toMove.x;
     moving.y = toMove.y;        //  Resetting values
 
-    wheels->at(0)->spin((moving * guide[0]) * 50);      //  Get those wheels spinning
-    wheels->at(1)->spin((moving * guide[1]) * 50);
-    wheels->at(2)->spin((moving * guide[2]) * 50);
+    for (int i = 0; i < wheelSize; i++)
+        wheels->at(i)->spin((moving * guide[i]) * 50);      //  Get those wheels spinning
     //  Will add code when the gyro & accel ready
     connect(mainTimer, SIGNAL(timeout()), this, SLOT(moveVectorSlot()));
     mainTimer->start(1000 / checksPerSecond);
 }
 
-void Cyber::firstLaunch()
+/*void Cyber::firstLaunch()
 {
     //  This is the main func to provide first user experience. Must be somehow rewritten
     direction.x = direction.y = 0;
 //    gyro->setConnection();
-/*    angles.m_tiltX = gyro->getTiltX();
-    angles.m_tiltY = gyro->getTiltY();
-    angles.m_tiltZ = gyro->getTiltZ();
-    QTimer::singleShot(10000, this, SLOT());*/
     //  Set calibration
     integrand = count = 0;
     connect(mainTimer, SIGNAL(timeout()), this, SLOT(firstLaunchSlot()));
     mainTimer->start(1000 / checksPerSecond);
-}
+}*/
 
 void Cyber::turnLeft(qreal degree)
 {
@@ -204,6 +198,64 @@ void Cyber::calibrate()
     mainTimer->start(1000 / checksPerSecond);
 }
 
+void Cyber::loadFromSaved()
+{
+    settings->open(QFile::ReadOnly);
+    wheelSize = settings->readLine().toInt();
+    wheelMode = (wheelType)settings->readLine().toInt();
+    controlMode = (controlType)settings->readLine().toInt();
+    setWheels();
+}
+
+void Cyber::setSettings()
+{
+    QString * message = new QString ();
+    if(!settings->open(QFile::WriteOnly))
+    {
+        qDebug() << "Something went wrong!";
+        return;
+    }
+    qDebug() << "How many wheels do you have on your OMNI?";
+    wheelSize = getchar() - '0';
+    guide = new vector[wheelSize];                  //  Guiding vectors for all
+
+    qDebug() << "Enter type of wheels: (D)C or (S)ervo?";
+    char temp = getchar();
+    if(temp == 'D' || temp == 'd')
+        wheelMode = DC;
+    else if (temp == 'S' || temp == 's')
+        wheelMode = SERV;
+    else qDebug() << "Please press either 'D' or 'C'";
+
+    qDebug() << "Enter type of connection: (A)ndroid, (P)C or A(u)to control?";
+    temp = getchar();
+    if(temp == 'A' || temp == 'a')
+        controlMode = ANDROID_CONTROL;
+    else if (temp == 'P' || temp == 'p')
+        controlMode = PC_CONTROL;
+    else if (temp == 'U' || temp == 'u')
+        controlMode = AUTO_MODE;
+    else qDebug() << "Please press either 'A', 'P' or 'u'";
+
+    message->append(QString::number(wheelSize) + '\n');
+    message->append(QString::number(wheelMode) + '\n');
+    message->append(QString::number(controlMode) + '\n');
+
+    if(settings->write(message->toStdString().data()) == -1)
+        qDebug() << "Something went wrong!";
+    setWheels();
+}
+
+void Cyber::setWheels()
+{
+    for (int i = 0; i < wheelSize; i++)
+    {
+        guide[i].x = cos(i * 2 * Pi / wheelSize - Pi / 2);
+        guide[i].y = sin(i * 2 * Pi / wheelSize - Pi / 2);
+        wheels->append( new wheel (i, wheelMode));
+    }
+}
+
 void Cyber::checkPosition()
 {
     vector mov;
@@ -213,27 +265,30 @@ void Cyber::checkPosition()
     on50percentSpeed.x = qCos(angVelocityC * 2 * Pi);
     on50percentSpeed.y = qSin(angVelocityC * 2 * Pi);
     mov.x = mov.y = 0;
-    for (int i=0; i<3; i++)
+    for (int i = 0; i < wheelSize; i++)
         mov = mov + guide[i] * (wheels->at(i)->getSpeed() / 100);
 /*    for (int i=0; i<3; i++)
         angVelocity += wheels->at(i)->getSpeed();
         angVelocity = convertSpeed();   //  convert percents into speed. Or based on an encoder.
 */
+    previous.tiltX = angles.tiltX;
+    previous.tiltY = angles.tiltY;
+    previous.tiltZ = angles.tiltZ;
 //    gyro->readGyroEvent();
-    angles.m_tiltX = gyro->getTiltX();  //  Get gyro statements
-    angles.m_tiltY = gyro->getTiltY();
-    angles.m_tiltZ = gyro->getTiltZ();
+    angles.tiltX = gyro->getTiltX();  //  Get gyro statements
+    angles.tiltY = gyro->getTiltY();
+    angles.tiltZ = gyro->getTiltZ();
 /*    qDebug() << "Pos is:\t" << position.x << '\t' << position.y << '\n'\
              << "Dir is:\t" << direction.x << '\t' << direction.y;
     position = position + ( (kalmanCoef / (checksPerSecond * checksPerSecond * 2)) * acceleration \
                             + ((1 - kalmanCoef) / checksPerSecond) * (moving));*/
     //  Kalman filter values
     direction = direction + \
-            (kalmanCoef / checksPerSecond) * (setAngle( angles.m_tiltZ - correction ) * direction) + \
+            (kalmanCoef / checksPerSecond) * (setAngle( angles.tiltZ - correction ) * direction) + \
             ((1 - kalmanCoef) / checksPerSecond ) * (on50percentSpeed + direction);
     //  Change direction
-    absolute.m_tiltZ = kalmanCoef * (angles.m_tiltZ - correction) + (1 - kalmanCoef) * angVelocityC;
-    currRad += absolute.m_tiltZ / checksPerSecond;
+    absolute.tiltZ = kalmanCoef * (angles.tiltZ - correction) + (1 - kalmanCoef) * angVelocityC;
+    currRad += absolute.tiltZ / checksPerSecond;
 }
 
 void Cyber::moveVectorSlot()
@@ -246,11 +301,8 @@ void Cyber::moveVectorSlot()
 
     if(count == 0)
     {
-    	wheels->at(0)->spin((normalize(setAngle(-currRad) * moving) * guide[0]) * 80);      //  Get those wheels spinning
-    	wheels->at(1)->spin((normalize(setAngle(-currRad) * moving) * guide[1]) * 80);
-    	wheels->at(2)->spin((normalize(setAngle(-currRad) * moving) * guide[2]) * 80);
-        qDebug() << "CurrRad is:\t" << currRad << "\nSpeed1 is:\t" << wheels->at(0)->getSpeed() \ 
-	         << "\nSpeed2 is:\t" << wheels->at(1)->getSpeed() << "\n3 is:\t" << wheels->at(2)->getSpeed();
+        for (int i = 0; i < wheelSize; i++)
+            wheels->at(i)->spin((normalize(setAngle(-currRad) * moving) * guide[i]) * 80);  //  Get those wheels spinning
     }
 }
 
@@ -263,10 +315,10 @@ void Cyber::turnLeftSlot()
         stop();
     }
     else if(leftRad < 2 * Pi)
-        for(int i=0; i<3; i++)
+        for(int i = 0; i < wheelSize; i++)
             wheels->at(i)->spin(50);
     checkPosition();
-    leftRad -= qAbs(absolute.m_tiltZ / checksPerSecond);
+    leftRad -= qAbs(absolute.tiltZ / checksPerSecond);
 }
 
 void Cyber::turnRightSlot()
@@ -282,36 +334,47 @@ void Cyber::turnRightSlot()
         stop();
     }
     else if(leftRad < 2 * Pi)
-        for(int i=0; i<3; i++)
+        for(int i = 0; i < wheelSize; i++)
             wheels->at(i)->spin(-50);
     checkPosition();
-    leftRad -= qAbs(absolute.m_tiltZ / checksPerSecond);
+    leftRad -= qAbs(absolute.tiltZ / checksPerSecond);
 }
 
 void Cyber::calibrateSlot()
 {
     count++;
-    if (count == (20 * checksPerSecond))
+    if (count == (2 * checksPerSecond))
     {
         mainTimer->stop();
         disconnect(mainTimer, SIGNAL(timeout()), this, SLOT(calibrateSlot()));
-        correction = integrand / (20 * checksPerSecond);
+        correction = integrand / (2 * checksPerSecond);
         integrand = 0;
         qDebug () << "Calibration is over, we are ready to roll!\nCorrection is:\t" << correction;
-	moving.x = 1;
-	moving.y = 0;
-        moveByVector(moving);
+//        moving.x = 1;
+//        moving.y = 0;
+//        moveByVector(moving);
     }
     checkPosition();
-    integrand += angles.m_tiltZ;
+    integrand += (angles.tiltZ + previous.tiltZ);
 }
 
-void Cyber::firstLaunchSlot()
+/*void Cyber::firstLaunchSlot()
 {
     count++;
     count %= checksPerSecond;
     if(count == 0)
         qDebug() << "Integrand is:\t" << QString::number(integrand, 'f');
     checkPosition();
-    integrand += absolute.m_tiltZ / checksPerSecond;
+    integrand += (absolute.tiltZ + angles.tiltZ) / (checksPerSecond * 2);
+}
+*/
+
+void Cyber::movingState()
+{
+
+}
+
+void Cyber::pauseState()
+{
+    stop();
 }

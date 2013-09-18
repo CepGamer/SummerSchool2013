@@ -31,29 +31,17 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <QByteArray>
 #include <QDataStream>
 
-enum progtype {ANDROID_CONTROL, AUTO_MODE, PC_CONTROL, OTHER};
-
 int main (int argc, char ** argv)
 {
     QCoreApplication * a = new QCoreApplication (argc, argv);
     /*QTcpServer * reciever = new QTcpServer;
     QByteArray * buffer;
     QDataStream * numbers;*/
-    vector c;
-    qreal x;
-    progtype type = OTHER;
+//    vector c;
 //    int toRet;
-    Cyber * b = new Cyber(API);
+    Cyber * b = new Cyber();
     qDebug() << "Engines is going to run";
-    if (argc == 2)
-    {
-        if (strcmp("android", argv[1]) == 0)
-            type = ANDROID_CONTROL;
-        else if(strcmp("auto", argv[1]) == 0)
-            type = AUTO_MODE;
-        else if(strcmp("pc", argv[1]) == 0)
-            type = PC_CONTROL;
-    }
+    b->startOMNI();
 
 /*    switch (type) {
     case ANDROID_CONTROL:
@@ -98,10 +86,6 @@ int main (int argc, char ** argv)
             }
         break;
     }*/
-    if(type == ANDROID_CONTROL)
-        5;
-    else if(type == AUTO_MODE)
-        5;
     /*else if (type == PC_CONTROL)
     {
         while(true)
@@ -121,32 +105,6 @@ int main (int argc, char ** argv)
             b->moveByVector(30 + 40 * sqrt(x / 125000.0), normalize(c));
         }
     }*/
-    else
-    {
-//        while(scanf("%f", &x))
-//        scanf("%f", &x);
-        x = 600.2;
-//        qDebug() << x;
-            switch(qRound(x))
-            {
-            case 0:
-                b->stop();
-                break;
-/*            case 500:
-                b->turn(360);
-                break;*/
-            case 600:
-//                b->firstLaunch();
-                break;
-            default:
-/*                qDebug() << "Degree is:\t" << qRound(x);
-                c.x = cos ( x * Pi / 180);
-                c.y = sin ( x * Pi / 180);
-                qDebug() << "Moving vector is:\t" << (qreal)c.x << '\t' << (qreal)c.y;*/
-                b->turn(qRound(x));
-            break;
-            }
-    }
 //    delete b;
 //    qDebug() << "Exited program";
     return a->exec();

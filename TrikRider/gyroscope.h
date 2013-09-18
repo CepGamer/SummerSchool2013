@@ -42,11 +42,11 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 const qreal gyroConvConst = 820.846931;     //  Constant from quadrocopter
 
-struct gyro_pos
+struct gyroPos
 {
-    qreal m_tiltX;  //  Roll, тангаж
-    qreal m_tiltY;  //  Pitch, крен
-    qreal m_tiltZ;  //  Yaw, рысканье
+    qreal tiltX;  //  Roll, тангаж
+    qreal tiltY;  //  Pitch, крен
+    qreal tiltZ;  //  Yaw, рысканье
 };
 
 class Gyroscope : public QObject

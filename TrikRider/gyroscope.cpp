@@ -57,7 +57,7 @@ void Gyroscope::setConnection()
     begin = new QTime();
     begin->start();
     setPort();                   //  Standart port
-    setPath(QString("/dev/input/event1"));  //  Standart path
+    setPath(QString("/dev/input/by-path/platform-spi_davinci.1-event"));    //  Standart path
     ke_gyroFd = open(ke_path.toStdString().data(), O_SYNC, O_RDONLY);
     if (ke_gyroFd == -1)
     {
