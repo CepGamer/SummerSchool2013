@@ -35,11 +35,21 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <QTcpServer>
 #include <QSocketNotifier>
 #include <QTcpSocket>
-#include <QSettings>    //  What is it?
+#include <QSettings>
+#include <QTimer>
+#include <qmath.h>
+#include <QStringList>
+
+#if QT_VERSION >= 0x050000  // wtf?
+#include <QCoreApplication>
+#else
+#include <QtGui/QApplication>
+#endif
 //#include <QQuaternion>
 //#include <QtSql/QSql>
 
-#include "wheel.h"
+//#include "wheel.h"
+#include "MotorCtrl.hpp"
 #include "gyroscope.h"
 
 #include <cmath>
@@ -49,6 +59,7 @@ const qreal degPerSecMCoef = 1;     //  Not used
 const quint16 checksPerSecond = 20; //  Было 10
 const qreal kalmanCoef = 1;
 const qreal angVelocity = 4.487989339;  //  Unknown! Must be set up!
+const qreal Pi = 3.1415926535;      //  Needed for some calc's
 
 enum controlType {ANDROID_CONTROL, AUTO_MODE, PC_CONTROL, OTHER};
 enum state {START, MOVING, PAUSED};
@@ -99,10 +110,8 @@ public:
     void startOMNI ();
 
 private:
-    QFile * settings;               //  Settings file
-    QList<wheel *> * wheels;        //  Wheels.
 //    QList<vector *> * guide;        //  Guiding vector
-    vector * guide;
+    vector * guide;                 //  Array of guiding vectors
     vector position;                //  Absolute position in the world
     vector direction;               //  Absolute direction
     vector moving;
@@ -114,17 +123,21 @@ private:
     quint8 wheelSize;
     quint16 count;
     controlType controlMode;        //  How device is controlled
-    wheelType wheelMode;            //  How wheels is connected
+//    wheelType wheelMode;            //  How wheels is connected
 
+    QSettings * settings;           //  Settings file
+    QList<Motor *> * wheels;        //  Wheels.
+    I2cConnection * connection;
     QTimer * mainTimer;             //  Check position timer
     QTcpServer * conServer;
     QTcpSocket * conSocket;
+    QString * buffer;
 
     Gyroscope * gyro;
 
     gyroPos previous;
-    gyroPos angles;                //  Current gyro tilt
-    gyroPos absolute;              //  Filtered gyro pos (x axis is forward, z axis is -g)
+    gyroPos angles;                 //  Current gyro tilt
+    gyroPos absolute;               //  Filtered gyro pos (x axis is forward, z axis is -g)
 
     void turnLeft (qreal degree);   //  Precise turns
     void turnRight (qreal degree);
@@ -132,6 +145,7 @@ private:
     void loadFromSaved();           //  Load saved settings
     void setSettings();
     inline void setWheels();
+    void test();
 
 signals:
     
@@ -143,9 +157,11 @@ private slots:
     void turnLeftSlot();
     void turnRightSlot();
     void calibrateSlot();
-    void firstLaunchSlot();
     void movingState();
     void pauseState();
+    void tcpDisconnected();
+    bool setConnection();
+    bool readTcp();
 
 };
 

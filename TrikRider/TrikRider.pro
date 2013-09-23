@@ -27,11 +27,13 @@ QT  +=  network
 
 HEADERS += \
     cyber.h \
-    wheel.h \
-    gyroscope.h
+    gyroscope.h \
+    MotorCtrl.hpp \
+    I2cConnection.hpp
 
 SOURCES += \
     cyber.cpp \
-    wheel.cpp \
     main.cpp \
-    gyroscope.cpp
+    gyroscope.cpp \
+    MotorCtrl.cpp \
+    I2cConnection.cpp
