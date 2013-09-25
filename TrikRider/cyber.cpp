@@ -36,9 +36,10 @@ Cyber::Cyber(QObject *parent) :
     mainTimer = new QTimer(this);
     wheels = new QList<Motor *>();
     conServer = new QTcpServer ();
+    buffer = new QString();
 
     conServer->listen(QHostAddress::Any, settings->value("ConnectionPort").toInt());
-    connect(conServer, SIGNAL(newConnection()), this, SLOT(setConnection());
+    connect(conServer, SIGNAL(newConnection()), this, SLOT(setConnection()));
 
     position.x = position.y = \
             direction.x = direction.y = 0;      //  Resetting values
@@ -106,8 +107,15 @@ vector setVAngle(qreal radAngle)
 
 Cyber::~Cyber()
 {
+    while(connection->CloseConnection() != 0);
+
+    delete connection;
+    delete conSocket;
+    delete conServer;
     delete mainTimer;
+    delete settings;
     delete wheels;
+    delete buffer;
     delete guide;
     delete gyro;
 }
@@ -142,9 +150,9 @@ void Cyber::startOMNI()
         else setSettings();
     } else setSettings();
 
-//    gyro->setConnection();          //  Start reading gyro
-    test();
-//    calibrate();                    //  Calibrating gyro (& accel, when ready (& if needed))
+    gyro->setConnection();          //  Start reading gyro
+//    test();
+    calibrate();                    //  Calibrating gyro (& accel, when ready (& if needed))
 }
 
 void Cyber::moveByVector(vector toMove)
@@ -409,12 +417,13 @@ bool Cyber::setConnection()
 
 bool Cyber::readTcp()
 {
-    buffer = new QString();
-    if (!conSocket->isValid()) return;
+    if (!conSocket->isValid()) return false;
     while (conSocket->bytesAvailable() > 0)
     {
         buffer->append(conSocket->readLine(100));
 
     }
-    delete buffer;
+
+    buffer->clear();
+    return true;
 }

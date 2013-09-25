@@ -8,8 +8,9 @@ class Motor : public QObject
 	Q_OBJECT
 public:
 	Motor(char jack,int period, I2cConnection* i2cCon);
+    ~Motor();
 
-	int setPower(int _power); 
+    int setPower(int _power);
 	int setPeriod(int _period);
     inline int getPower() {return m_power;}
 	char getPowerRegister(char jack);

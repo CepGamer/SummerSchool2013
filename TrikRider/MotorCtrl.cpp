@@ -5,7 +5,13 @@ m_jack(jack),
 m_i2cCon(i2cCon)
 {
 	setPeriod(period);
-	setPower(0);
+    setPower(0);
+}
+
+Motor::~Motor()
+{
+    while(0 != m_i2cCon->CloseConnection());
+    delete m_i2cCon;
 }
 
 int Motor::setPower(int _power)
