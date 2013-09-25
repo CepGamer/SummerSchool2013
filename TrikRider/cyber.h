@@ -146,6 +146,9 @@ private:
     void setSettings();
     inline void setWheels();
     void test();
+    void andrControl();
+    void pcControl();
+    void autoControl();
 
 signals:
     

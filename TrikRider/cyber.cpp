@@ -142,7 +142,7 @@ void Cyber::startOMNI()
     {
         char temp;
         qDebug() << "Load previous settings? Y/N";
-        temp = getchar();
+        scanf("%c", &temp);
         if(temp == 'y' || temp == 'Y')
             loadFromSaved();
         else if (temp != 'n' && temp != 'N')
@@ -157,13 +157,11 @@ void Cyber::startOMNI()
 
 void Cyber::moveByVector(vector toMove)
 {
-    currRad = direction.x = direction.y = 0;
+    if (mainTimer->isActive()) disconnect(mainTimer, SIGNAL(timeout()), this, SLOT(moveVectorSlot()));
+    direction.x = direction.y = 0;
     moving.x = toMove.x;
     moving.y = toMove.y;        //  Resetting values
 
-    for (int i = 0; i < wheelSize; i++)
-        wheels->at(i)->setPower((moving * guide[i]) * 50);      //  Get those wheels spinning
-    //  Will add code when the gyro & accel ready
     connect(mainTimer, SIGNAL(timeout()), this, SLOT(moveVectorSlot()));
     mainTimer->start(1000 / checksPerSecond);
 }
@@ -212,8 +210,9 @@ void Cyber::calibrate()
 
 void Cyber::loadFromSaved()
 {
-//    settings->open(QFile::ReadOnly);
-
+    wheelSize = settings->value("WheelSize").toInt();
+    qDebug() << wheelSize;
+    guide = new vector[wheelSize];                  //  Guiding vectors for all
     setWheels();
 }
 
@@ -225,13 +224,15 @@ void Cyber::setSettings()
     settings->setValue("ConnectionPort", 4444);
 
     qDebug() << "How many wheels do you have on your OMNI?";
-    wheelSize = getchar() - '0';
+    scanf("\n%c", &wheelSize);
+    wheelSize -= '0';
+    settings->setValue("WheelSize", wheelSize);
     guide = new vector[wheelSize];                  //  Guiding vectors for all
     for (int i = 1; i <= wheelSize; i++)
         settings->setValue("Wheel" + QString::number(i), i);
 
     qDebug() << "Enter type of connection: (A)ndroid, (P)C or A(u)to control?";
-//    temp = getchar();
+//    scanf("%c", &temp);
     temp = 'A';
     if(temp == 'A' || temp == 'a')
         controlMode = ANDROID_CONTROL;
@@ -247,25 +248,30 @@ void Cyber::setSettings()
 void Cyber::setWheels()
 {
     connection = new I2cConnection(settings->value("DevPath").toString(), settings->value("DevId").toInt());
-    for (int i = 0; i < wheelSize; i++)
-    {
-        if (i == 3)
-        {
-            guide[3].x = qCos(i * 2 * Pi / wheelSize - Pi / 2);
-            guide[3].y = qSin(i * 2 * Pi / wheelSize - Pi / 2);
-        } else if (i == 4)
-        {
-            guide[2].x = qCos(i * 2 * Pi / wheelSize - Pi / 2);
-            guide[2].y = qSin(i * 2 * Pi / wheelSize - Pi / 2);
-        } else
-        {
-            guide[i].x = qCos(i * 2 * Pi / wheelSize - Pi / 2);
-            guide[i].y = qSin(i * 2 * Pi / wheelSize - Pi / 2);
-        }
-        wheels->append( new Motor ((char) (settings->value("Wheel" + QString::number(i + 1)).toInt()), \
-                                           settings->value("Period").toInt(), \
-                                           connection));
-    }
+
+    guide[0].x = qCos(Pi / 4);
+    guide[0].y = qSin(Pi / 4);
+    wheels->append( new Motor ((char) (settings->value("Wheel" + QString::number(1)).toInt()), \
+                                       settings->value("Period").toInt(), \
+                                       connection));
+
+    guide[1].x = qCos(2 * Pi / wheelSize + Pi / 4);
+    guide[1].y = qSin(2 * Pi / wheelSize + Pi / 4);
+    wheels->append( new Motor ((char) (settings->value("Wheel" + QString::number(2)).toInt()), \
+                                       settings->value("Period").toInt(), \
+                                       connection));
+
+    guide[2].x = -qCos(2 * 2 * Pi / wheelSize + Pi / 4);
+    guide[2].y = -qSin(2 * 2 * Pi / wheelSize + Pi / 4);
+    wheels->append( new Motor ((char) (settings->value("Wheel" + QString::number(4)).toInt()), \
+                                       settings->value("Period").toInt(), \
+                                       connection));
+
+    guide[3].x = qCos(3 * 2 * Pi / wheelSize + Pi / 4);
+    guide[3].y = qSin(3 * 2 * Pi / wheelSize + Pi / 4);
+    wheels->append( new Motor ((char) (settings->value("Wheel" + QString::number(3)).toInt()), \
+                                       settings->value("Period").toInt(), \
+                                       connection));
 }
 
 void Cyber::test()
@@ -285,6 +291,15 @@ void Cyber::test()
         wheels->at(now)->setPower(100);
         prev = now;
     }
+}
+
+void Cyber::andrControl()
+{
+    qDebug() << "Entered android Control";
+    vector c;
+    c.y = 0;
+    c.x = 1;
+    this->moveByVector(c);
 }
 
 void Cyber::checkPosition()
@@ -320,20 +335,24 @@ void Cyber::checkPosition()
     //  Change direction
     absolute.tiltZ = kalmanCoef * (angles.tiltZ - correction) + (1 - kalmanCoef) * angVelocityC;
     currRad += absolute.tiltZ / checksPerSecond;
+    if (count == 10)
+        while (currRad > 2 * Pi) currRad -= 2 * Pi;
 }
 
 void Cyber::moveVectorSlot()
 {
     count++;
-    count %= checksPerSecond;
+    count %= checksPerSecond / 5;
 
     checkPosition();
 //    moving = normalize(setAngle(-currRad) * moving);     //  Calibrate moving vector
 
     if(count == 0)
     {
+//        qDebug() << "CurrRad is " << currRad;
+//        qDebug() << "Wheel #1 speed is " << ((normalize(setAngle(-currRad) * moving) * guide[0]) * 70);
         for (int i = 0; i < wheelSize; i++)
-            wheels->at(i)->setPower((normalize(setAngle(-currRad) * moving) * guide[i]) * 80);  //  Get those wheels spinning
+            wheels->at(i)->setPower((normalize(setAngle(-currRad) * moving) * guide[i]) * 70);  //  Get those wheels spinning
     }
 }
 
@@ -376,17 +395,18 @@ void Cyber::calibrateSlot()
     count++;
     if (count == (2 * checksPerSecond))
     {
+        qDebug() << "Integrand: " << integrand;
         mainTimer->stop();
         disconnect(mainTimer, SIGNAL(timeout()), this, SLOT(calibrateSlot()));
         correction = integrand / (2 * checksPerSecond);
-        integrand = 0;
-        qDebug () << "Calibration is over, we are ready to roll!\nCorrection is:\t" << correction;
+        integrand = count = 0;
+        andrControl();
 //        moving.x = 1;
 //        moving.y = 0;
 //        moveByVector(moving);
     }
     checkPosition();
-    integrand += (angles.tiltZ + previous.tiltZ);
+    integrand += angles.tiltZ;
 }
 
 void Cyber::movingState()
@@ -413,6 +433,7 @@ bool Cyber::setConnection()
     conSocket->setSocketOption(QAbstractSocket::LowDelayOption, 1);
     connect(conSocket, SIGNAL(disconnected()), this, SLOT(tcpDisconnected()));
     connect(conSocket, SIGNAL(readyRead()), this, SLOT(readTcp()));
+    return true;
 }
 
 bool Cyber::readTcp()

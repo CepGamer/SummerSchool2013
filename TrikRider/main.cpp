@@ -37,14 +37,10 @@ int main (int argc, char ** argv)
     /*QTcpServer * reciever = new QTcpServer;
     QByteArray * buffer;
     QDataStream * numbers;*/
-    vector c;
-    c.x = 0;
-    c.y = 0;
 //    int toRet;
     Cyber * b = new Cyber();
     qDebug() << "Engines is going to run";
     b->startOMNI();
-    b->moveByVector(c);
 
 /*    switch (type) {
     case ANDROID_CONTROL:
