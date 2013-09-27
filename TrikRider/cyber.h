@@ -68,6 +68,7 @@ enum state {START, MOVING, PAUSED};
 //  Garbage struct accel
 struct accelerometer
 {
+    accelerometer():x(), y(), z(){}
     qreal x;
     qreal y;
     qreal z;
@@ -75,6 +76,7 @@ struct accelerometer
 
 struct vector
 {
+    vector():x(), y(){}
     qreal x, y;
 };
 
@@ -104,13 +106,10 @@ public:
     ~Cyber();
     void turn (qreal degree);   //  NOTE:
     //  We allow turning for more than 360 degree (that's may be bad because of qreal precision)
-    void stop();
-    void moveByVector (vector toMove);  //  Main moving func
 //    void firstLaunch();
     void startOMNI ();
 
 private:
-//    QList<vector *> * guide;        //  Guiding vector
     vector * guide;                 //  Array of guiding vectors
     vector position;                //  Absolute position in the world
     vector direction;               //  Absolute direction
@@ -120,10 +119,10 @@ private:
     qreal leftRad;                  //  Left radians to turn
     qreal integrand;                //  Summary angle of Z tilt (tilt * time)
     qreal correction;               //  Correction coefficient (in radians)
-    quint8 wheelSize;
-    quint16 count;
+    quint8 wheelSize;               //  Number of wheels on omni
+    quint8 speed;                   //  Moving or not
+    quint32 count;                  //  Counter
     controlType controlMode;        //  How device is controlled
-//    wheelType wheelMode;            //  How wheels is connected
 
     QSettings * settings;           //  Settings file
     QList<Motor *> * wheels;        //  Wheels.
@@ -139,16 +138,19 @@ private:
     gyroPos angles;                 //  Current gyro tilt
     gyroPos absolute;               //  Filtered gyro pos (x axis is forward, z axis is -g)
 
+    void stop(bool );               //  Stop
+    void initialiseMove();          //  Main moving func
     void turnLeft (qreal degree);   //  Precise turns
     void turnRight (qreal degree);
     void calibrate();               //  Calibrating function
     void loadFromSaved();           //  Load saved settings
     void setSettings();
-    inline void setWheels();
+    void setWheels();
     void test();
     void andrControl();
     void pcControl();
     void autoControl();
+    void parseSignalAndroid(QStringList );
 
 signals:
     
@@ -160,11 +162,9 @@ private slots:
     void turnLeftSlot();
     void turnRightSlot();
     void calibrateSlot();
-    void movingState();
-    void pauseState();
     void tcpDisconnected();
-    bool setConnection();
-    bool readTcp();
+    void setConnection();
+    void readTcp();
 
 };
 
