@@ -56,7 +56,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <stdio.h>
 
 const qreal degPerSecMCoef = 1;     //  Not used
-const quint16 checksPerSecond = 20; //  Было 10. Работает наконец.
+const quint16 checksPerSecond = 25; //  Было 10. Работает наконец.
 const qreal kalmanCoef = 1;
 const qreal Pi = 3.1415926535;      //  Needed for some calc's
 

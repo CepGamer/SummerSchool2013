@@ -78,7 +78,6 @@ void Gyroscope::readGyroEvent()
     count %= checks;
     if(count == 0)
     {
-//        qDebug() << "Time is:\t" << begin->elapsed() << "\nChecks made:\t" << checks;
         begin->start();
     }
 
@@ -98,11 +97,6 @@ void Gyroscope::readGyroEvent()
             case ABS_Y: m_tiltY = event.value; break;
             case ABS_Z: m_tiltZ = event.value; break;
         }
-/*        fullMessage.sprintf("VALUE:%d %d %d\r\n",
-                           static_cast<int>(m_tiltX),
-                           static_cast<int>(m_tiltY),
-                           static_cast<int>(m_tiltZ));*/
-//        fullMessage.sprintf("VALUE: %g\t%g\t%g\r\n", m_tiltX, m_tiltY, m_tiltZ );
         break;
     case EV_SYN:
 //        qDebug() << fullMessage;

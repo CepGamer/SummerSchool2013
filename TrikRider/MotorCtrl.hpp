@@ -15,6 +15,7 @@ public:
     inline int getPower() {return m_power;}
 	char getPowerRegister(char jack);
 	char getPeriodRegister(char jack);
+    inline void revertClockwise() {clockwise = -clockwise;}
 
 
 public slots:
@@ -26,5 +27,6 @@ protected:
 	unsigned char m_jack; 
 	int m_power;
 	I2cConnection* m_i2cCon;
+    qint8 clockwise;
     static const char min_Period = 200;
 };

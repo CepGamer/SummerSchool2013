@@ -169,17 +169,18 @@ void Cyber::setSettings()
     settings->setValue("DevPath", "/dev/i2c-2");
     settings->setValue("DevId", 72);        //0x48
     settings->setValue("ConnectionPort", 4444);
+    settings->setValue("Period", 0x1000);
 
-    printf("How many wheels do you have on your OMNI? ");
-    scanf("%c", &wheelSize);
+    printf("How many wheels do you have on your OMNI?");
+    scanf("\n%c", &wheelSize);
     wheelSize -= '0';
     settings->setValue("WheelSize", wheelSize);
     guide = new vector[wheelSize];                  //  Guiding vectors for all
     for (int i = 1; i <= wheelSize; i++)
         settings->setValue("Wheel" + QString::number(i), i);
 
-    printf("\nEnter type of connection: (A)ndroid, (P)C or A(u)to control? ");
-    scanf("%c", &temp);
+    printf("Enter type of connection: (A)ndroid, (P)C or A(u)to control?");
+    scanf("\n%c", &temp);
     if(temp == 'A' || temp == 'a')
         controlMode = ANDROID_CONTROL;
     else if (temp == 'P' || temp == 'p')
@@ -208,11 +209,12 @@ void Cyber::setWheels()
                                        settings->value("Period").toInt(), \
                                        connection));
 
-    guide[2].x = -qCos(2 * 2 * Pi / wheelSize + Pi / 4);
-    guide[2].y = -qSin(2 * 2 * Pi / wheelSize + Pi / 4);
+    guide[2].x = qCos(2 * 2 * Pi / wheelSize + Pi / 4);
+    guide[2].y = qSin(2 * 2 * Pi / wheelSize + Pi / 4);
     wheels->append( new Motor ((char) (settings->value("Wheel" + QString::number(4)).toInt()), \
                                        settings->value("Period").toInt(), \
                                        connection));
+    wheels->at(2)->revertClockwise();
 
     guide[3].x = qCos(3 * 2 * Pi / wheelSize + Pi / 4);
     guide[3].y = qSin(3 * 2 * Pi / wheelSize + Pi / 4);
@@ -226,7 +228,7 @@ void Cyber::test()
     qDebug() << "Enter test";
     qint32 prev, now = 1;
     prev = 1;
-    while (1)
+    while (now != -1)
     {
         scanf("%d", &now);
         if (now != -1) break;
@@ -246,6 +248,7 @@ void Cyber::andrControl()
 
 void Cyber::parseSignalAndroid(QStringList signal)
 {
+    qDebug() << signal;
     if(signal.at(0) == "pad")
         switch (signal.at(1).toInt()) {
         case 1:
@@ -253,8 +256,17 @@ void Cyber::parseSignalAndroid(QStringList signal)
                 moving.x = moving.y = 0;
             else
             {
-                moving.x = qMin(signal.at(3).trimmed().toDouble(), 50.0);
-                moving.y =-qMin(signal.at(2).trimmed().toDouble(), 50.0);
+                double x, y;
+                x = signal.at(2).trimmed().toDouble();
+                y = signal.at(3).trimmed().toDouble();
+                if (y > 0)
+                    moving.x = qMin(y, 50.0);
+                else
+                    moving.x = qMax(y, -50.0);
+                if (x < 0)
+                    moving.y = -qMin(x, 50.0);
+                else
+                    moving.y = -qMax(x, -50.0);
             }
             break;
         case 2:
@@ -326,26 +338,30 @@ void Cyber::moveVectorSlot()
 
     if(count == 0)
     {
-        qDebug() << currRad;
+        QString buf;
         for (int i = 0; i < wheelSize; i++)
         {
             wheels->at(i)->setPower((round10((setAngle(-currRad) * moving * guide[i]) * 1.1) +\
                                      angVelocity) * speed);  //  Get those wheels spinning
+            buf.append(QString::number(wheels->at(i)->getPower()) + "\t");
         }
+        qDebug() << buf;
     }
 }
 
 void Cyber::calibrateSlot()
 {
     count++;
-    if (count == (2 * checksPerSecond))
+    if (count == (/*2 * */checksPerSecond))
     {
         speed = 1;
         qDebug() << "Correction: " << correction;
         mainTimer->stop();
         disconnect(mainTimer, SIGNAL(timeout()), this, SLOT(calibrateSlot()));
         correction = integrand / (2 * checksPerSecond);
-        integrand = count = 0;
+        angles.tiltX = angles.tiltY = angles.tiltZ = \
+                absolute.tiltX = absolute.tiltY = absolute.tiltZ = \
+                currRad = integrand = count = 0;
         switch (controlMode) {
         case ANDROID_CONTROL:
             andrControl();

@@ -2,7 +2,8 @@
 
 Motor::Motor(char jack, int period, I2cConnection* i2cCon):
 m_jack(jack),
-m_i2cCon(i2cCon)
+m_i2cCon(i2cCon),
+clockwise(1)
 {
 	setPeriod(period);
     setPower(0);
@@ -19,6 +20,7 @@ int Motor::setPower(int _power)
 	if (_power > 100) _power = 100;
 	if (_power < -100) _power = -100;
 
+    _power *= -clockwise;
 	char data[2];
 	data[0] = getPowerRegister(m_jack);
 	data[1] = (_power)&0xff;

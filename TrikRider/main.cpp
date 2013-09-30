@@ -36,7 +36,6 @@ int main (int argc, char ** argv)
     QCoreApplication * a = new QCoreApplication (argc, argv);
 
     Cyber * b = new Cyber();
-    qDebug() << "Engines is going to run";
     b->startOMNI();
 
     return a->exec();
