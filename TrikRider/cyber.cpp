@@ -113,19 +113,8 @@ Cyber::~Cyber()
     delete gyro;
 }
 
-void Cyber::turn (qreal degree)
-{
-    if (degree > 0)
-    {
-        turnRight(degree);      //  If we turn
-    }
-    else if (degree < 0)
-        turnLeft(-degree);
-}
-
 void Cyber::stop(bool full)
 {
-    qDebug() << "Entered stop";
     if (full) speed = 0;
     for (int i = 0; i < wheelSize; i++)
         wheels->at(i)->setPower(speed);      //  Fullstop
@@ -136,8 +125,8 @@ void Cyber::startOMNI()
     if(settings->allKeys().count() != 0)
     {
         char temp;
-        qDebug() << "Load previous settings? Y/N";
-        scanf("\n%c", &temp);
+        printf ("Load previous settings? Y/N\n");
+        scanf("%c", &temp);
         if(temp == 'y' || temp == 'Y')
             loadFromSaved();
         else if (temp != 'n' && temp != 'N')
@@ -155,21 +144,6 @@ void Cyber::initialiseMove()
 {
     speed = 1;
     connect(mainTimer, SIGNAL(timeout()), this, SLOT(moveVectorSlot()));
-    mainTimer->start(1000 / checksPerSecond);
-}
-
-void Cyber::turnLeft(qreal degree)
-{
-    leftRad = degree / 180 * Pi;
-    //  Again, some code after gyro
-    connect(mainTimer, SIGNAL(timeout()), this, SLOT(turnLeftSlot()));
-    mainTimer->start(1000 / checksPerSecond);
-}
-
-void Cyber::turnRight(qreal degree)
-{
-    leftRad = degree / 180 * Pi;
-    connect(mainTimer, SIGNAL(timeout()), this, SLOT(turnRightSlot())); //  Start timer
     mainTimer->start(1000 / checksPerSecond);
 }
 
@@ -272,21 +246,29 @@ void Cyber::andrControl()
 
 void Cyber::parseSignalAndroid(QStringList signal)
 {
-    qDebug () << signal;
     if(signal.at(0) == "pad")
         switch (signal.at(1).toInt()) {
         case 1:
-            if(signal.at(2) == "up\n");
-//                stop(false);
+            if(signal.at(2) == "up\n")
+                moving.x = moving.y = 0;
             else
             {
-                moving.x = signal.at(2).toInt();
-                moving.y = signal.at(3).trimmed().toInt();
+                moving.x = qMin(signal.at(3).trimmed().toDouble(), 50.0);
+                moving.y =-qMin(signal.at(2).trimmed().toDouble(), 50.0);
             }
             break;
         case 2:
-            if(signal.at(2) == "up\n");
-//                stop(false);
+            if(signal.at(2) == "up\n")
+                angVelocity = 0;
+            else
+            {
+                qreal x, y;
+                x = signal.at(2).trimmed().toDouble();
+                y = signal.at(3).trimmed().toDouble();
+                if (y <= 0)
+                    break;
+                angVelocity = round10( -x / qSqrt((x * x) + (y * y)) * 60);
+            }
             break;
         default:
             break;
@@ -302,15 +284,14 @@ void Cyber::parseSignalAndroid(QStringList signal)
         }
 }
 
+qint8 Cyber::round10(qreal number)
+{
+    return ((qint8) number / 10) * 10;
+}
+
 void Cyber::checkPosition()
 {
     vector mov;
-    qreal angVelocityC = angVelocity / ((wheels->at(1)->getPower() > 75) ? 2 : 1);  //  Get speed - divide speed in 2 types
-    vector on50percentSpeed;
-//    currRad = currRad % (2 * Pi);
-    on50percentSpeed.x = qCos(angVelocityC * 2 * Pi);
-    on50percentSpeed.y = qSin(angVelocityC * 2 * Pi);
-    mov.x = mov.y = 0;
     for (int i = 0; i < wheelSize; i++)
         mov = mov + guide[i] * (wheels->at(i)->getPower() / 100);
 
@@ -325,12 +306,15 @@ void Cyber::checkPosition()
     //  Kalman filter values
     direction = direction + \
             (kalmanCoef / checksPerSecond) * (setAngle( angles.tiltZ - correction ) * direction) + \
-            ((1 - kalmanCoef) / checksPerSecond ) * (on50percentSpeed + direction);
+            ((1 - kalmanCoef) / checksPerSecond ) * (/*angVelocity -> new vector + */ direction);
     //  Change direction
-    absolute.tiltZ = kalmanCoef * (angles.tiltZ - correction) + (1 - kalmanCoef) * angVelocityC;
+    absolute.tiltZ = kalmanCoef * (angles.tiltZ - correction) + (1 - kalmanCoef) * angVelocity;
     currRad += absolute.tiltZ / checksPerSecond;
-    if (count == 10)
-        while (currRad > 2 * Pi) currRad -= 2 * Pi;
+    if (count == checksPerSecond)
+    {
+        while (currRad >  2 * Pi) currRad -= 2 * Pi;
+        while (currRad < -2 * Pi) currRad += 2 * Pi;
+    }
 }
 
 void Cyber::moveVectorSlot()
@@ -342,44 +326,13 @@ void Cyber::moveVectorSlot()
 
     if(count == 0)
     {
-        qDebug () << (normalize(setAngle(-currRad) * moving) * guide[0]) * 7000 * speed;
+        qDebug() << currRad;
         for (int i = 0; i < wheelSize; i++)
-            wheels->at(i)->setPower((normalize(setAngle(-currRad) * moving) * guide[i]) * 7000 * speed);  //  Get those wheels spinning
+        {
+            wheels->at(i)->setPower((round10((setAngle(-currRad) * moving * guide[i]) * 1.1) +\
+                                     angVelocity) * speed);  //  Get those wheels spinning
+        }
     }
-}
-
-void Cyber::turnLeftSlot()
-{
-    if(leftRad < 0.2)
-    {
-        mainTimer->stop();
-        mainTimer->disconnect(mainTimer, SIGNAL(timeout()), this, SLOT(turnLeftSlot()));
-        stop(false);
-    }
-    else if(leftRad < 2 * Pi)
-        for(int i = 0; i < wheelSize; i++)
-            wheels->at(i)->setPower(50);
-    checkPosition();
-    leftRad -= qAbs(absolute.tiltZ / checksPerSecond);
-}
-
-void Cyber::turnRightSlot()
-{
-    count++;
-    count %= checksPerSecond;
-    if(count == 0)
-        qDebug() << "leftRad is:\t" << QString::number(leftRad, 'f');
-    if(leftRad < 0.2)
-    {
-        mainTimer->stop();
-        disconnect(mainTimer, SIGNAL(timeout()), this, SLOT(turnRightSlot()));
-        stop(false);
-    }
-    else if(leftRad < 2 * Pi)
-        for(int i = 0; i < wheelSize; i++)
-            wheels->at(i)->setPower(-50);
-    checkPosition();
-    leftRad -= qAbs(absolute.tiltZ / checksPerSecond);
 }
 
 void Cyber::calibrateSlot()
@@ -388,7 +341,7 @@ void Cyber::calibrateSlot()
     if (count == (2 * checksPerSecond))
     {
         speed = 1;
-        qDebug() << "Integrand: " << integrand;
+        qDebug() << "Correction: " << correction;
         mainTimer->stop();
         disconnect(mainTimer, SIGNAL(timeout()), this, SLOT(calibrateSlot()));
         correction = integrand / (2 * checksPerSecond);

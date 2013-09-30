@@ -56,13 +56,11 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <stdio.h>
 
 const qreal degPerSecMCoef = 1;     //  Not used
-const quint16 checksPerSecond = 20; //  Было 10
+const quint16 checksPerSecond = 20; //  Было 10. Работает наконец.
 const qreal kalmanCoef = 1;
-const qreal angVelocity = 4.487989339;  //  Unknown! Must be set up!
 const qreal Pi = 3.1415926535;      //  Needed for some calc's
 
 enum controlType {ANDROID_CONTROL, AUTO_MODE, PC_CONTROL, OTHER};
-enum state {START, MOVING, PAUSED};
 //  Auto mode - some mythical type of controls. So as the Other one
 
 //  Garbage struct accel
@@ -104,9 +102,6 @@ class Cyber : public QObject
 public:
     explicit Cyber(QObject *parent = 0);
     ~Cyber();
-    void turn (qreal degree);   //  NOTE:
-    //  We allow turning for more than 360 degree (that's may be bad because of qreal precision)
-//    void firstLaunch();
     void startOMNI ();
 
 private:
@@ -115,6 +110,7 @@ private:
     vector direction;               //  Absolute direction
     vector moving;
 //    vector acceleration;            //  Absolute acceleration
+    qreal angVelocity;
     qreal currRad;                  //  Current angle in radians
     qreal leftRad;                  //  Left radians to turn
     qreal integrand;                //  Summary angle of Z tilt (tilt * time)
@@ -140,8 +136,6 @@ private:
 
     void stop(bool );               //  Stop
     void initialiseMove();          //  Main moving func
-    void turnLeft (qreal degree);   //  Precise turns
-    void turnRight (qreal degree);
     void calibrate();               //  Calibrating function
     void loadFromSaved();           //  Load saved settings
     void setSettings();
@@ -151,6 +145,7 @@ private:
     void pcControl();
     void autoControl();
     void parseSignalAndroid(QStringList );
+    qint8 round10(qreal );
 
 signals:
     
@@ -159,8 +154,6 @@ public slots:
 private slots:
     void checkPosition();
     void moveVectorSlot();
-    void turnLeftSlot();
-    void turnRightSlot();
     void calibrateSlot();
     void tcpDisconnected();
     void setConnection();
