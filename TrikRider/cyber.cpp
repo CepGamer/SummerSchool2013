@@ -115,7 +115,8 @@ Cyber::~Cyber()
 
 void Cyber::stop(bool full)
 {
-    if (full) speed = 0;
+//    if (full) speed = 0;
+    speed = 0;
     for (int i = 0; i < wheelSize; i++)
         wheels->at(i)->setPower(speed);      //  Fullstop
 }
@@ -130,7 +131,7 @@ void Cyber::startOMNI()
         if(temp == 'y' || temp == 'Y')
             loadFromSaved();
         else if (temp != 'n' && temp != 'N')
-            qDebug() << "Please press either 'Y' or 'N'";
+            printf("Please press either 'Y' or 'N'\n");
         else setSettings();
     } else setSettings();
 
@@ -142,14 +143,12 @@ void Cyber::startOMNI()
 
 void Cyber::initialiseMove()
 {
-    speed = 1;
     connect(mainTimer, SIGNAL(timeout()), this, SLOT(moveVectorSlot()));
     mainTimer->start(1000 / checksPerSecond);
 }
 
 void Cyber::calibrate()
 {
-    qDebug () << "Sensor Calibration Initiated";
     count = correction = integrand = 0; //  Tune the calibration
     connect(mainTimer, SIGNAL(timeout()), this, SLOT(calibrateSlot()));
     mainTimer->start(1000 / checksPerSecond);
@@ -159,7 +158,7 @@ void Cyber::loadFromSaved()
 {
     wheelSize = settings->value("WheelSize").toInt();
     controlMode = (controlType) settings->value("ControlMode").toInt();
-    guide = new vector[wheelSize];                  //  Guiding vectors for all
+    guide = new vector[wheelSize];      //  Guiding vectors for all
     setWheels();
 }
 
@@ -169,7 +168,7 @@ void Cyber::setSettings()
     settings->setValue("DevPath", "/dev/i2c-2");
     settings->setValue("DevId", 72);        //0x48
     settings->setValue("ConnectionPort", 4444);
-    settings->setValue("Period", 0x1000);
+    settings->setValue("Period", 0x2710);
 
     printf("How many wheels do you have on your OMNI?");
     scanf("\n%c", &wheelSize);
@@ -246,31 +245,44 @@ void Cyber::andrControl()
     connect(conServer, SIGNAL(newConnection()), this, SLOT(setConnection()));
 }
 
+void Cyber::pcControl()
+{
+    qreal angle;
+    printf("Enter angle (in deg): ");
+    scanf("\n%g", angle);
+    moving.x = qCos(angle * Pi / 180);
+    moving.y = qSin(angle * Pi / 180);
+    speed = 100;
+    initialiseMove();
+}
+
+void Cyber::autoControl()
+{
+    moving.x = qCos(0);
+    moving.y = qSin(0);
+    speed = 100;
+    initialiseMove();
+}
+
 void Cyber::parseSignalAndroid(QStringList signal)
 {
-    qDebug() << signal;
     if(signal.at(0) == "pad")
         switch (signal.at(1).toInt()) {
         case 1:
-            if(signal.at(2) == "up\n")
+            if(signal.at(2).trimmed() == "up")
                 moving.x = moving.y = 0;
             else
             {
                 double x, y;
                 x = signal.at(2).trimmed().toDouble();
                 y = signal.at(3).trimmed().toDouble();
-                if (y > 0)
-                    moving.x = qMin(y, 50.0);
-                else
-                    moving.x = qMax(y, -50.0);
-                if (x < 0)
-                    moving.y = -qMin(x, 50.0);
-                else
-                    moving.y = -qMax(x, -50.0);
+                moving.x = y;
+                moving.y = -x;
+                speed = qSqrt(x * x + y * y);
             }
             break;
         case 2:
-            if(signal.at(2) == "up\n")
+            if(signal.at(2).trimmed() == "up")
                 angVelocity = 0;
             else
             {
@@ -279,7 +291,7 @@ void Cyber::parseSignalAndroid(QStringList signal)
                 y = signal.at(3).trimmed().toDouble();
                 if (y <= 0)
                     break;
-                angVelocity = round10( -x / qSqrt((x * x) + (y * y)) * 60);
+                angVelocity = round10( -x / qSqrt((x * x) + (y * y)) * 100);
             }
             break;
         default:
@@ -291,6 +303,10 @@ void Cyber::parseSignalAndroid(QStringList signal)
             stop(true);
             break;
         case 2:
+            stop(true);
+            disconnect(mainTimer, SIGNAL(timeout()), this, SLOT(moveVectorSlot()));
+            calibrate();
+            break;
         default:
             break;
         }
@@ -298,15 +314,17 @@ void Cyber::parseSignalAndroid(QStringList signal)
 
 qint8 Cyber::round10(qreal number)
 {
-    return ((qint8) number / 10) * 10;
+    quint8 x = (qint8) number;
+    return x >= 20 ? x : 0;    // "/ 10) * 10;"
+}
+
+void Cyber::keyPressEvent(QKeyEvent *event)
+{
+    if (speed) stop(true);
 }
 
 void Cyber::checkPosition()
 {
-    vector mov;
-    for (int i = 0; i < wheelSize; i++)
-        mov = mov + guide[i] * (wheels->at(i)->getPower() / 100);
-
     previous.tiltX = angles.tiltX;
     previous.tiltY = angles.tiltY;
     previous.tiltZ = angles.tiltZ;
@@ -338,14 +356,40 @@ void Cyber::moveVectorSlot()
 
     if(count == 0)
     {
-        QString buf;
         for (int i = 0; i < wheelSize; i++)
         {
-            wheels->at(i)->setPower((round10((setAngle(-currRad) * moving * guide[i]) * 1.1) +\
-                                     angVelocity) * speed);  //  Get those wheels spinning
-            buf.append(QString::number(wheels->at(i)->getPower()) + "\t");
+            quint8 mx = 100;
+            if (speed >= 20 && angVelocity > 50)
+            {
+                mx = 80;
+                wheels->at(i)->setPower((round10((setAngle(-currRad) * moving * guide[i]) * qMin(speed, mx)) + (angVelocity / 5)));
+                //  Get those wheels spinning
+            }
+            else if (angVelocity > 50)
+            {
+                wheels->at(i)->setPower(angVelocity);
+            }
+            else if (speed >= 20)
+                wheels->at(i)->setPower((round10((setAngle(-currRad) * moving * guide[i]) * qMin(speed, mx))));
+            else stop(false);
         }
-        qDebug() << buf;
+        qDebug() << moving.x << moving.y << qMin((int)speed, 100) << currRad << angVelocity << guide[0].x << guide[0].y\
+                 << round10((setAngle(-currRad) * moving * guide[0]));
+        qDebug() << wheels->at(0)->getPower();
+        switch (controlMode) {
+        case ANDROID_CONTROL:
+            break;
+        case PC_CONTROL:
+            qreal x;
+            printf("Enter angle in radians");
+            scanf("\n%g", &x);
+            moving.x = qCos(x);
+            moving.y = qSin(x);
+            break;
+        case AUTO_MODE:
+        default:
+            break;
+        }
     }
 }
 
@@ -354,11 +398,9 @@ void Cyber::calibrateSlot()
     count++;
     if (count == (/*2 * */checksPerSecond))
     {
-        speed = 1;
-        qDebug() << "Correction: " << correction;
         mainTimer->stop();
         disconnect(mainTimer, SIGNAL(timeout()), this, SLOT(calibrateSlot()));
-        correction = integrand / (2 * checksPerSecond);
+        correction = integrand / (/*2 * */checksPerSecond);
         angles.tiltX = angles.tiltY = angles.tiltZ = \
                 absolute.tiltX = absolute.tiltY = absolute.tiltZ = \
                 currRad = integrand = count = 0;
@@ -367,7 +409,10 @@ void Cyber::calibrateSlot()
             andrControl();
             break;
         case PC_CONTROL:
+            pcControl();
         case AUTO_MODE:
+            autoControl();
+            break;
         default:
             break;
         }
@@ -385,7 +430,6 @@ void Cyber::tcpDisconnected()
 
 void Cyber::setConnection()
 {
-    qDebug() << "Entered setconnection";
     if(conSocket && conSocket->isValid()) qDebug () << "Replacing current connection";
     conSocket = conServer->nextPendingConnection();
     conSocket->setSocketOption(QAbstractSocket::LowDelayOption, 1);
@@ -398,12 +442,11 @@ void Cyber::readTcp()
     if (!conSocket->isValid()) return ;
     while (conSocket->bytesAvailable() > 0)
     {
-        qDebug() << "Entered readBytes";
         char data [100];
         conSocket->readLine(data, 100);
         buffer->append(data);
         parseSignalAndroid(QString(data).split(" ", QString::SkipEmptyParts));
     }
-//    buffer->clear();
+    buffer->clear();
     return ;
 }

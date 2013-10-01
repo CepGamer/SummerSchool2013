@@ -39,6 +39,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <QTimer>
 #include <qmath.h>
 #include <QStringList>
+#include <QKeyEvent>
 
 #if QT_VERSION >= 0x050000  // wtf?
 #include <QCoreApplication>
@@ -152,6 +153,7 @@ signals:
 public slots:
 
 private slots:
+    void keyPressEvent(QKeyEvent *);
     void checkPosition();
     void moveVectorSlot();
     void calibrateSlot();
