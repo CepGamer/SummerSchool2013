@@ -128,11 +128,16 @@ void Cyber::startOMNI()
         char temp;
         printf ("Load previous settings? Y/N\n");
         scanf("%c", &temp);
-        if(temp == 'y' || temp == 'Y')
-            loadFromSaved();
-        else if (temp != 'n' && temp != 'N')
+        while(temp != 'y' && temp != 'Y' && \
+              temp != 'n' && temp != 'n')
+        {
             printf("Please press either 'Y' or 'N'\n");
-        else setSettings();
+            scanf("%c", &temp);
+        }
+        if (temp == 'y' || temp == 'Y')
+            loadFromSaved();
+        else
+            setSettings();
     } else setSettings();
 
     gyro->setConnection();          //  Start reading gyro
@@ -196,27 +201,27 @@ void Cyber::setWheels()
 {
     connection = new I2cConnection(settings->value("DevPath").toString(), settings->value("DevId").toInt());
 
-    guide[0].x = qCos(Pi / 4);
-    guide[0].y = qSin(Pi / 4);
+    guide[0].x = qCos(1 * 2 * Pi / wheelSize + Pi / 4);
+    guide[0].y = qSin(1 * 2 * Pi / wheelSize + Pi / 4);
     wheels->append( new Motor ((char) (settings->value("Wheel" + QString::number(1)).toInt()), \
                                        settings->value("Period").toInt(), \
                                        connection));
 
-    guide[1].x = qCos(2 * Pi / wheelSize + Pi / 4);
-    guide[1].y = qSin(2 * Pi / wheelSize + Pi / 4);
+    guide[1].x = qCos(0 * 2 * Pi / wheelSize + Pi / 4);
+    guide[1].y = qSin(0 * 2 * Pi / wheelSize + Pi / 4);
     wheels->append( new Motor ((char) (settings->value("Wheel" + QString::number(2)).toInt()), \
                                        settings->value("Period").toInt(), \
                                        connection));
+    wheels->at(1)->revertClockwise();
 
-    guide[2].x = qCos(2 * 2 * Pi / wheelSize + Pi / 4);
-    guide[2].y = qSin(2 * 2 * Pi / wheelSize + Pi / 4);
+    guide[2].x = qCos(3 * 2 * Pi / wheelSize + Pi / 4);
+    guide[2].y = qSin(3 * 2 * Pi / wheelSize + Pi / 4);
     wheels->append( new Motor ((char) (settings->value("Wheel" + QString::number(4)).toInt()), \
                                        settings->value("Period").toInt(), \
                                        connection));
-    wheels->at(2)->revertClockwise();
 
-    guide[3].x = qCos(3 * 2 * Pi / wheelSize + Pi / 4);
-    guide[3].y = qSin(3 * 2 * Pi / wheelSize + Pi / 4);
+    guide[3].x = qCos(2 * 2 * Pi / wheelSize + Pi / 4);
+    guide[3].y = qSin(2 * 2 * Pi / wheelSize + Pi / 4);
     wheels->append( new Motor ((char) (settings->value("Wheel" + QString::number(3)).toInt()), \
                                        settings->value("Period").toInt(), \
                                        connection));
@@ -249,7 +254,7 @@ void Cyber::pcControl()
 {
     qreal angle;
     printf("Enter angle (in deg): ");
-    scanf("\n%g", angle);
+    scanf("\n%g", &angle);
     moving.x = qCos(angle * Pi / 180);
     moving.y = qSin(angle * Pi / 180);
     speed = 100;
@@ -320,7 +325,24 @@ qint8 Cyber::round10(qreal number)
 
 void Cyber::keyPressEvent(QKeyEvent *event)
 {
-    if (speed) stop(true);
+    switch (event->key()) {
+    case Qt::Key_F1:
+        qDebug() << "F1, stopping";
+        stop(true);
+        break;
+    case Qt::Key_F2:
+        stop(false);
+        qDebug() << "Going to PC Control";
+        pcControl();
+        break;
+    case Qt::Key_F3:
+        stop(false);
+        qDebug() << "Going to andrControl";
+        andrControl();
+        break;
+    default:
+        break;
+    }
 }
 
 void Cyber::checkPosition()
@@ -373,34 +395,21 @@ void Cyber::moveVectorSlot()
                 wheels->at(i)->setPower((round10((setAngle(-currRad) * moving * guide[i]) * qMin(speed, mx))));
             else stop(false);
         }
-        qDebug() << moving.x << moving.y << qMin((int)speed, 100) << currRad << angVelocity << guide[0].x << guide[0].y\
-                 << round10((setAngle(-currRad) * moving * guide[0]));
-        qDebug() << wheels->at(0)->getPower();
-        switch (controlMode) {
-        case ANDROID_CONTROL:
-            break;
-        case PC_CONTROL:
-            qreal x;
-            printf("Enter angle in radians");
-            scanf("\n%g", &x);
-            moving.x = qCos(x);
-            moving.y = qSin(x);
-            break;
-        case AUTO_MODE:
-        default:
-            break;
-        }
+        qDebug()    << (setAngle(-currRad) * moving * guide[0])\
+                    << wheels->at(0)->getPower() << wheels->at(1)->getPower()\
+                    << wheels->at(2)->getPower() << wheels->at(3)->getPower();
     }
 }
 
 void Cyber::calibrateSlot()
 {
     count++;
-    if (count == (/*2 * */checksPerSecond))
+    if (count == (2 * checksPerSecond))
     {
         mainTimer->stop();
         disconnect(mainTimer, SIGNAL(timeout()), this, SLOT(calibrateSlot()));
-        correction = integrand / (/*2 * */checksPerSecond);
+        correction = integrand / (2 * checksPerSecond);
+        qDebug() << QString::number(correction);
         angles.tiltX = angles.tiltY = angles.tiltZ = \
                 absolute.tiltX = absolute.tiltY = absolute.tiltZ = \
                 currRad = integrand = count = 0;

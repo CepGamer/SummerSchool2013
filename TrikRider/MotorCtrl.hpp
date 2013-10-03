@@ -12,7 +12,7 @@ public:
 
     int setPower(int _power);
 	int setPeriod(int _period);
-    inline int getPower() {return m_power;}
+    inline int getPower() {return m_power * clockwise;}
 	char getPowerRegister(char jack);
 	char getPeriodRegister(char jack);
     inline void revertClockwise() {clockwise = -clockwise;}
