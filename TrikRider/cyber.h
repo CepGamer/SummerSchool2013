@@ -1,28 +1,17 @@
 /*
-Copyright (c) 2013, Bolotov Sergey
-All rights reserved.
+Copyright 2013 Bolotov Sergey
 
-Redistribution and use in source and binary forms, with or without
-modification, are permitted provided that the following conditions are met:
-    * Redistributions of source code must retain the above copyright
-      notice, this list of conditions and the following disclaimer.
-    * Redistributions in binary form must reproduce the above copyright
-      notice, this list of conditions and the following disclaimer in the
-      documentation and/or other materials provided with the distribution.
-    * Neither the name of the Saint-Petersburg State University nor the
-      names of its contributors may be used to endorse or promote products
-      derived from this software without specific prior written permission.
+   Licensed under the Apache License, Version 2.0 (the "License");
+   you may not use this file except in compliance with the License.
+   You may obtain a copy of the License at
 
-THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND
-ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
-WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
-DISCLAIMED. IN NO EVENT SHALL Bolotov Sergey BE LIABLE FOR ANY
-DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES
-(INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
-LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND
-ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
-(INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
-SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+       http://www.apache.org/licenses/LICENSE-2.0
+
+   Unless required by applicable law or agreed to in writing, software
+   distributed under the License is distributed on an "AS IS" BASIS,
+   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+   See the License for the specific language governing permissions and
+   limitations under the License.
 */
 
 
@@ -35,28 +24,39 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <QTcpServer>
 #include <QSocketNotifier>
 #include <QTcpSocket>
-#include <QSettings>    //  What is it?
+#include <QSettings>
+#include <QTimer>
+#include <qmath.h>
+#include <QStringList>
+#include <QKeyEvent>
+
+#if QT_VERSION >= 0x050000  // wtf?
+#include <QCoreApplication>
+#else
+#include <QtGui/QApplication>
+#endif
 //#include <QQuaternion>
 //#include <QtSql/QSql>
 
-#include "wheel.h"
+//#include "wheel.h"
+#include "MotorCtrl.hpp"
 #include "gyroscope.h"
 
 #include <cmath>
 #include <stdio.h>
 
 const qreal degPerSecMCoef = 1;     //  Not used
-const quint16 checksPerSecond = 20; //  Было 10
+const quint16 checksPerSecond = 25; //  Было 10. Работает наконец.
 const qreal kalmanCoef = 1;
-const qreal angVelocity = 4.487989339;  //  Unknown! Must be set up!
+const qreal Pi = 3.1415926535;      //  Needed for some calc's
 
 enum controlType {ANDROID_CONTROL, AUTO_MODE, PC_CONTROL, OTHER};
-enum state {START, MOVING, PAUSED};
 //  Auto mode - some mythical type of controls. So as the Other one
 
 //  Garbage struct accel
 struct accelerometer
 {
+    accelerometer():x(), y(), z(){}
     qreal x;
     qreal y;
     qreal z;
@@ -64,6 +64,7 @@ struct accelerometer
 
 struct vector
 {
+    vector():x(), y(){}
     qreal x, y;
 };
 
@@ -91,61 +92,63 @@ class Cyber : public QObject
 public:
     explicit Cyber(QObject *parent = 0);
     ~Cyber();
-    void turn (qreal degree);   //  NOTE:
-    //  We allow turning for more than 360 degree (that's may be bad because of qreal precision)
-    void stop();
-    void moveByVector (vector toMove);  //  Main moving func
-//    void firstLaunch();
     void startOMNI ();
 
 private:
-    QFile * settings;               //  Settings file
-    QList<wheel *> * wheels;        //  Wheels.
-//    QList<vector *> * guide;        //  Guiding vector
-    vector * guide;
+    vector * guide;                 //  Array of guiding vectors
     vector position;                //  Absolute position in the world
     vector direction;               //  Absolute direction
     vector moving;
 //    vector acceleration;            //  Absolute acceleration
+    qreal angVelocity;
     qreal currRad;                  //  Current angle in radians
     qreal leftRad;                  //  Left radians to turn
     qreal integrand;                //  Summary angle of Z tilt (tilt * time)
     qreal correction;               //  Correction coefficient (in radians)
-    quint8 wheelSize;
-    quint16 count;
+    quint8 wheelSize;               //  Number of wheels on omni
+    quint8 speed;                   //  Moving or not
+    quint32 count;                  //  Counter
     controlType controlMode;        //  How device is controlled
-    wheelType wheelMode;            //  How wheels is connected
 
+    QSettings * settings;           //  Settings file
+    QList<Motor *> * wheels;        //  Wheels.
+    I2cConnection * connection;
     QTimer * mainTimer;             //  Check position timer
     QTcpServer * conServer;
     QTcpSocket * conSocket;
+    QString * buffer;
 
     Gyroscope * gyro;
 
     gyroPos previous;
-    gyroPos angles;                //  Current gyro tilt
-    gyroPos absolute;              //  Filtered gyro pos (x axis is forward, z axis is -g)
+    gyroPos angles;                 //  Current gyro tilt
+    gyroPos absolute;               //  Filtered gyro pos (x axis is forward, z axis is -g)
 
-    void turnLeft (qreal degree);   //  Precise turns
-    void turnRight (qreal degree);
+    void stop(bool );               //  Stop
+    void initialiseMove();          //  Main moving func
     void calibrate();               //  Calibrating function
     void loadFromSaved();           //  Load saved settings
     void setSettings();
-    inline void setWheels();
+    void setWheels();
+    void test();
+    void andrControl();
+    void pcControl();
+    void autoControl();
+    void parseSignalAndroid(QStringList );
+    qint8 round10(qreal );
 
 signals:
     
 public slots:
 
 private slots:
+    void keyPressEvent(QKeyEvent *);
     void checkPosition();
     void moveVectorSlot();
-    void turnLeftSlot();
-    void turnRightSlot();
     void calibrateSlot();
-    void firstLaunchSlot();
-    void movingState();
-    void pauseState();
+    void tcpDisconnected();
+    void setConnection();
+    void readTcp();
 
 };
 
